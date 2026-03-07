@@ -171,13 +171,13 @@ def main():
                 "suggestedValue": suggested_value_from_fpts(hitter.get("fpts", 0)),
                 "stats": {},
             }
-        else:
-            # Keep suggestedValue derived from projection fpts (id/name/team are already set).
-            players_by_key[key]["suggestedValue"] = suggested_value_from_fpts(hitter.get("fpts", 0))
-            players_by_key[key]["stats"]["projection"] = {
-                "season": 2026,
-                "hitter": hitter,
-            }
+
+        # Keep suggestedValue derived from projection fpts (id/name/team are already set).
+        players_by_key[key]["suggestedValue"] = suggested_value_from_fpts(hitter.get("fpts", 0))
+        players_by_key[key]["stats"]["projection"] = {
+            "season": 2026,
+            "hitter": hitter,
+        }
 
     # 2) Last year: add stats.lastYear
     if args.last_year.exists():
@@ -213,7 +213,7 @@ def main():
                 continue
             if key in players_by_key:
                 players_by_key[key]["stats"]["threeYearAvg"] = {
-                    "season": [2023, 2024, 2025],
+                    "seasons": [2023, 2024, 2025],
                     "hitter": hitter,
                 }
 

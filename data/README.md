@@ -6,6 +6,8 @@ All positions and stats used in player data.
 `python data/csv_to_json.py`
 This reads `data/csv/projections-NL.csv`, `2025-player-NL-stats.csv`, and `3Year-average-NL-stats.csv`, merges by player (name + team), and writes `data/players.json`. Use `--output path` and `--projections` / `--last-year` / `--three-year` to override paths.
 
+Schema note: single-year stat blocks use `season`, while `threeYearAvg` uses `seasons` because it aggregates multiple years.
+
 ---
 
 ## 1. Positions
