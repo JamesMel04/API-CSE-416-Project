@@ -1,2 +1,4 @@
 /.cursor
-/docs
+/Notes
+node_modules
+dist
