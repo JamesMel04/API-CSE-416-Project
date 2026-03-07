@@ -1,7 +1,7 @@
 {
     "id": "juan-soto-nym",
     "name": "Juan Soto",
-    "mlbTeam": "NYM",
+    "team": "NYM",
     "positions": ["OF"],
     "suggestedValue": 32,
     "stats": {

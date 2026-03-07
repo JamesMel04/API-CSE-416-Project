@@ -148,7 +148,7 @@ def main():
     parser.add_argument("--output", "-o", type=Path, default=DEFAULT_OUTPUT, help="Output JSON path")
     args = parser.parse_args()
 
-    # Player key -> player object (id, name, mlbTeam, positions, stats)
+    # Player key -> player object (id, name, team, positions, stats)
     players_by_key: Dict[str, dict] = {}
 
     # 1) Projections: create players and set stats.projection
@@ -166,7 +166,7 @@ def main():
             players_by_key[key] = {
                 "id": slug_id(name, team),
                 "name": name,
-                "mlbTeam": team,
+                "team": team,
                 "positions": positions,
                 "suggestedValue": suggested_value_from_fpts(hitter.get("fpts", 0)),
                 "stats": {},
@@ -197,7 +197,7 @@ def main():
             # Optionally create stub if only in lastYear (uncomment to include)
             # else:
             #     players_by_key[key] = {
-            #         "id": slug_id(name, team), "name": name, "mlbTeam": team,
+            #         "id": slug_id(name, team), "name": name, "team": team,
             #         "positions": positions, "stats": {"lastYear": {"seasons": [2025], "hitter": hitter}},
             #     }
 
