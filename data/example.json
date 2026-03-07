@@ -1,12 +1,12 @@
 {
-    "id": "a3f8c21e-4b59-4d70-9e12-1c8a5f3b0d42",
+    "id": "juan-soto-nym",
     "name": "Juan Soto",
     "mlbTeam": "NYM",
     "positions": ["OF"],
     "suggestedValue": 32,
     "stats": {
         "projection": {
-            "season": 2026,
+            "seasons": [2026],
             "hitter": {
                 "ab": 534,
                 "r": 113,
@@ -27,7 +27,7 @@
             }
         },
         "lastYear": {
-            "season": 2025,
+            "seasons": [2025],
             "hitter": {
                 "ab": 577,
                 "r": 120,

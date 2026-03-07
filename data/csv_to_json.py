@@ -175,7 +175,7 @@ def main():
         # Keep suggestedValue derived from projection fpts (id/name/team are already set).
         players_by_key[key]["suggestedValue"] = suggested_value_from_fpts(hitter.get("fpts", 0))
         players_by_key[key]["stats"]["projection"] = {
-            "season": 2026,
+            "seasons": [2026],
             "hitter": hitter,
         }
 
@@ -191,14 +191,14 @@ def main():
                 continue
             if key in players_by_key:
                 players_by_key[key]["stats"]["lastYear"] = {
-                    "season": 2025,
+                    "seasons": [2025],
                     "hitter": hitter,
                 }
             # Optionally create stub if only in lastYear (uncomment to include)
             # else:
             #     players_by_key[key] = {
             #         "id": slug_id(name, team), "name": name, "mlbTeam": team,
-            #         "positions": positions, "stats": {"lastYear": {"season": 2025, "hitter": hitter}},
+            #         "positions": positions, "stats": {"lastYear": {"seasons": [2025], "hitter": hitter}},
             #     }
 
     # 3) Three-year average: add stats.threeYearAvg
