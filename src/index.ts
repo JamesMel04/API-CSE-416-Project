@@ -5,6 +5,7 @@ import path from 'path';
 // Node's file system (read/write files)
 import fs from 'fs';
 
+import cors from "cors"
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -22,6 +23,7 @@ const playersJsonString = fs.readFileSync(playersPath, 'utf-8');
 // *Note*: The approach used here is to have the data stored in an object once the server runs, this allows faster return on request but may contain stale data if data changes, it could be good for the MVP, as we don't have real DB set up yet.  
 const players = JSON.parse(playersJsonString);
 
+app.use(cors());
 // Reads JSON puts in req.body
 app.use(express.json());
 
