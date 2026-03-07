@@ -5,6 +5,10 @@ import path from 'path';
 // Node's file system (read/write files)
 import fs from 'fs';
 
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 // Creates Express application: Obj for the web server
 // Get port number, if not provided, use 3000
 const app = express();
