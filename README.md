@@ -1,6 +1,6 @@
-API URL: https://api-cse-416-project.onrender.com/
+API URL: [https://api-cse-416-project-5a0b.onrender.com/](https://api-cse-416-project-5a0b.onrender.com)
 
-Draft Kit Backend: https://draft-kit-cse-416-project-1.onrender.com/
+Draft Kit Backend: [https://draft-kit-backend-cse-416-project.onrender.com/](https://draft-kit-backend-cse-416-project.onrender.com)
 
 Run whenever dependency files change (package.json or package-lock.json)
 ```
