@@ -27,10 +27,13 @@ export interface HitterStats {
 ];
  */
 export type HitterCategory = keyof HitterStats;
-// Used for mean, sd, z-score
-export type HitterCategorySummary = Record<HitterCategory, number>;
 // For Category Factor, how important each category is
 export type HitterCategoryWeights = Record<HitterCategory, number>;
+// Used for mean, sd, z-score
+export type HitterCategorySummary = Record<HitterCategory, number>;
+// {PlayerID, SetofData}
+export type PlayerHitterCategorySummaries = Record<string, HitterCategorySummary>;
+
 
 export interface SeasonStats {
     seasons: number[];
