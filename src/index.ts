@@ -42,7 +42,7 @@ app.listen(PORT, () => {
 })
 
 // User request with ValuationRequest: (LeagueSettings, DraftState)
-app.post('/valuations', (req, res) => {
+app.post('/players/valuations', (req, res) => {
     try {
         const request = req.body as ValuationRequest;
         //Calling our valuation service on the players
@@ -58,7 +58,7 @@ app.post('/valuations', (req, res) => {
 
 
 //================ ONLY FOR TESTING ==========================
-app.get('/valuations/test', (req, res) => {
+app.get('/players/valuations/test', (req, res) => {
     const request: ValuationRequest = {
         leagueSettings: {
             budget: 260,
