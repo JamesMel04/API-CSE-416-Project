@@ -16,8 +16,10 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
     //Step 1: Filter out drafted players
     const eligible: Player[] = players.filter(player => !draftState.draftedPlayerIds.includes(player.id))
 
+
     //Step 2: Separate players into different pools: Hitters and Pitchers 
-    const PlayerPools: PlayerPools = separatePools(players);
+    const {hitters, pitchers}  = separatePools(players);
+
 
     //Step 3: Calculate the mean and standard deviation across the eligible player pools
     //Might want to exclude some categories
@@ -30,6 +32,14 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
     const hitterMean: HitterCategorySummary = {} as HitterCategorySummary;
     const hitterstdDev: HitterCategorySummary= {} as HitterCategorySummary;
 
+    for (const category of categories){
+        // Array of all player's stat of that category
+        const values = hitters.map(player => player.stats.projection.hitter[category])
+        
+        hitterMean[category] = values.length > 0 ? mean(values) : 0;
+        hitterstdDev[category] = values.length > 1 ? standardDeviation(values) : 0;
+    }
+
 
     return [];
 }
@@ -40,11 +50,11 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
  * @param players 
  * @returns A pool with hitters, pitchers separated
  */
-function separatePools(players: Player[]) : PlayerPools {
+function separatePools(eligible: Player[]) : PlayerPools {
     const hitters: Player[] = [];
     const pitchers: Player[] = [];
 
-    for(const player of players) {
+    for(const player of eligible) {
         // Pitcher Positions: P, SP, RP
         const isPitcher = player.positions.includes("P") 
             || player.positions.includes("SP") 
