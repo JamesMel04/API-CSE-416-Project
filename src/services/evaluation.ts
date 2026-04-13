@@ -299,6 +299,8 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
 }
 
 
+const PITCHER_POSITIONS = new Set(["P", "SP", "RP"]);
+
 /**
  * Separate an array of player into hitters and pitchers
  * @param players 
@@ -308,23 +310,24 @@ function separatePools(eligible: Player[]) : PlayerPools {
     const hitters: Player[] = [];
     const pitchers: Player[] = [];
 
-    for(const player of eligible) {
-        // Pitcher Positions: P, SP, RP
-        const isPitcher = player.positions.includes("P") 
-            || player.positions.includes("SP") 
-            || player.positions.includes("RP");
-
-        // Hitter Positions: any other then P, SP, RP
-        const isHitter = !isPitcher || player.positions.some(
-            pos => !["P", "SP", "RP"].includes(pos)
+    for (const player of eligible) {
+        const hasPitcherPosition = player.positions.some((pos) =>
+            PITCHER_POSITIONS.has(pos)
         );
 
-        // if a player plays both, he is placed into both pools
-        if (isHitter) {
+        const hasHitterPosition = player.positions.some((pos) =>
+            !PITCHER_POSITIONS.has(pos)
+        );
+
+        // Check if the player have the stat block
+        const hasHitterStats = player.stats?.projection?.hitter !== undefined;
+        const hasPitcherStats = player.stats?.projection?.pitcher !== undefined;
+
+        if (hasHitterPosition && hasHitterStats) {
             hitters.push(player);
         }
 
-        if (isPitcher) {
+        if (hasPitcherPosition && hasPitcherStats) {
             pitchers.push(player);
         }
     }
