@@ -67,7 +67,7 @@ app.get('/players/valuations/test', (req, res) => {
             categoryWeights: {}
         },
         draftState: {
-            draftedPlayerIds: []
+            rosterAssignments: []
         }
     };
 

@@ -16,7 +16,15 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
     // =====================================================================================================
     // [Step 1: Filter out drafted players] 
 
-    const eligible: Player[] = players.filter(player => !draftState.draftedPlayerIds.includes(player.id))
+    // Get an Array of IDs of all players that has being drafted
+    const draftedPlayerIds = new Set(
+        draftState.rosterAssignments.map((assignment) => assignment.playerId)
+    );
+
+    // Gets the players who have not being drafted yet
+    const eligible: Player[] = players.filter(
+        (player) => !draftedPlayerIds.has(player.id)
+    );
 
     // =====================================================================================================
     // [Step 2: Separate players into different pools: Hitters and Pitchers] 
@@ -209,23 +217,54 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
     // =====================================================================================================
     // === Step 7: Compute the adjustment factors
 
-        /*Hardcode 1 for now*/
-    const ageFactor = 1;
-    const injuryFactor = 1;
+    const hitterAgeFactors: Record<string, number> = {};
+    const pitcherAgeFactors: Record<string, number> = {};
+    
+    // Hitters age factor
+    for (const player of hitters) {
+        hitterAgeFactors[player.id] = getAgeFactor(player.age);
+    }
+
+    // Pitchers age factor
+    for (const player of pitchers) {
+        pitcherAgeFactors[player.id] = getAgeFactor(player.age);
+    }
+        //*Include other factors like injuries too in the future*//
+        const injuryFactor = 1;
 
     // =====================================================================================================
     // === Step 8: Multiply the factors
 
-        //TotalFactor = AgeFactor * InjuryFactor * DepthFactor * ImportanceFactor
+    const hitterTotalFactors: Record<string, number> = {};
+    const pitcherTotalFactors: Record<string, number> = {};
+
+    //TotalFactor = AgeFactor * InjuryFactor * DepthFactor * ImportanceFactor
+
+    // Hitters
+    for (const player of hitters) {
+        hitterTotalFactors[player.id] = hitterAgeFactors[player.id]! * injuryFactor;
+    }
+
+    // Pitchers
+    for (const player of pitchers) {
+        pitcherTotalFactors[player.id] = pitcherAgeFactors[player.id]! * injuryFactor;
+    }
+
     
     // =====================================================================================================
     // === Step 9: Compute the adjusted score
 
     const hitterAdjustedScores: Record<string, number> = {};
-    
+    const pitcherAdjustedScores: Record<string, number> = {};
+
+    // Hitters
     for (const player of hitters) {
-        const totalFactor = 1; //To be changed when Step 8 finished
-        hitterAdjustedScores[player.id] = hitterBaseScores[player.id]! * totalFactor;
+        hitterAdjustedScores[player.id] = hitterBaseScores[player.id]! * hitterTotalFactors[player.id]!;
+    }
+
+    // Pitchers
+    for (const player of pitchers) {
+        pitcherAdjustedScores[player.id] = pitcherBaseScores[player.id]! * pitcherTotalFactors[player.id]!;
     }
 
     // =====================================================================================================
@@ -333,4 +372,28 @@ function separatePools(eligible: Player[]) : PlayerPools {
     }
 
     return { hitters, pitchers };
+}
+
+/**
+ * Computes a player's age adjustment factor using a quadratic curve centered
+ * on the peak age.
+ * 
+ * Example with `peakAge = 28`:
+ * - age 27 -> 1.00
+ * - age 25 -> 0.99
+ * - age 21 -> 0.91
+ *
+ * @param age The player's current age in years.
+ * @param peakAge The age considered the player's performance peak. 
+ * @returns A raw age factor where values closer to 1 indicate ages nearer the peak.
+ */
+function getAgeFactor(age: number): number {
+    const peakAge = 27; // Age with Factor of 1, best
+    const ageAwayFromBest = age - peakAge;
+    const penalty = 0.0025; 
+
+    // ** 2: squares the age difference
+    const raw = 1 - penalty * ((ageAwayFromBest) ** 2);
+
+    return Math.max(0.90, Math.min(1.0, raw)); // keep age Factor min at 0.9
 }

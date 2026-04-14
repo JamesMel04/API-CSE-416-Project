@@ -80,7 +80,6 @@ export type PitcherCategorySummary = Record<PitcherScoringCategory, number>;
 export type PlayerHitterCategorySummaries = Record<string, HitterCategorySummary>;
 export type PlayerPitcherCategorySummaries = Record<string, PitcherCategorySummary>;
 
-
 export interface SeasonStats {
     seasons: number[];
     hitter: HitterStats;
@@ -91,6 +90,7 @@ export interface Player {
     id: string;
     name: string;
     team: string;
+    age: number;
     positions: string[];
     suggestedValue: number;
     stats: {
@@ -100,7 +100,7 @@ export interface Player {
     };
 }
 
-// ========== Valuation Request (sent by client) ==========
+// =================== Valuation Request (sent by client) =======================
 export interface LeagueSettings {
     budget: number;
     rosterSize: number;
@@ -111,11 +111,38 @@ export interface LeagueSettings {
     };
 }
 
+// Adjust on need
+export type RosterSlot =
+    | "C"   // Catcher
+    | "1B"  // First base
+    | "2B"  // Second base
+    | "3B"  // Third base
+    | "SS"  // Shortstop
+    | "OF"  // Outfield
+    | "U"   // Utility
+    | "P"   // Pitcher
+    | "SP"  // Starting pitcher
+    | "RP"  // Relief pitcher
+    | "CI"  // Corner infield
+    | "MI"  // Middle infield
+    | "IF"  // Infield
+    | "LF"  // Left field
+    | "CF"  // Center field
+    | "RF"  // Right field
+    | "IL"; // Injured list
+
+// For each assigned player
+export interface DraftedRosterAssignment {
+    teamId: string;
+    playerId: string;
+    assignedPosition: RosterSlot;
+}
+
 /** 
- * Contains the IDs of every player that has been drafted by any team.
+ * Contain the fantasy roster slot each drafted player is currently filling.
 */
 export interface DraftState {
-    draftedPlayerIds: string[];
+    rosterAssignments: DraftedRosterAssignment[];
 }
 
 export interface ValuationRequest {
@@ -130,7 +157,7 @@ export interface PlayerValuation {
     auctionPrice: number;
 }
 
-// ==================== Player Pool Type ====================
+// ====================== Player Pool Type ======================================
 export interface PlayerPools {
     hitters: Player[];
     pitchers: Player[];
