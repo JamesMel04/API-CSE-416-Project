@@ -90,7 +90,7 @@ export interface Player {
     id: string;
     name: string;
     team: string;
-    age: number;
+    age?: number;
     positions: string[];
     suggestedValue: number;
     stats: {
@@ -105,10 +105,6 @@ export interface LeagueSettings {
     budget: number;
     rosterSize: number;
     teamCount: number;
-    categoryWeights?: {
-        hitters?: Partial<HitterCategoryWeights>;
-        pitchers?: Partial<PitcherCategoryWeights>;
-    };
 }
 
 // Adjust on need

@@ -119,7 +119,7 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
     }
 
     // =====================================================================================================
-    // === Step 5: Multiply each category z-score by that category’s importance weight.
+    // === Step 5: Multiply each category z-score by that category’s importance weight. (might not be needed)
 
     const DEFAULT_HITTER_CATEGORY_WEIGHTS: HitterCategoryWeights = {
         r: 1,
@@ -147,15 +147,9 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
     };
 
     // Fallback as default weights
-    const hitterWeights: HitterCategoryWeights = {
-        ...DEFAULT_HITTER_CATEGORY_WEIGHTS,
-        ...(leagueSettings.categoryWeights?.hitters ?? {}),
-    };
-        
-    const pitcherWeights: PitcherCategoryWeights = {
-        ...DEFAULT_PITCHER_CATEGORY_WEIGHTS,
-        ...(leagueSettings.categoryWeights?.pitchers ?? {}),
-    };
+    const hitterWeights: HitterCategoryWeights = DEFAULT_HITTER_CATEGORY_WEIGHTS;
+    const pitcherWeights: PitcherCategoryWeights = DEFAULT_PITCHER_CATEGORY_WEIGHTS;
+    
 
     const hitterWeightedZScores: PlayerHitterCategorySummaries = {};
     const pitcherWeightedZScores: PlayerPitcherCategorySummaries = {};
@@ -387,7 +381,11 @@ function separatePools(eligible: Player[]) : PlayerPools {
  * @param peakAge The age considered the player's performance peak. 
  * @returns A raw age factor where values closer to 1 indicate ages nearer the peak.
  */
-function getAgeFactor(age: number): number {
+function getAgeFactor(age: number | undefined): number {
+    if (age === undefined || Number.isNaN(age)) {
+        return 0.9;
+    }
+
     const peakAge = 27; // Age with Factor of 1, best
     const ageAwayFromBest = age - peakAge;
     const penalty = 0.0025; 

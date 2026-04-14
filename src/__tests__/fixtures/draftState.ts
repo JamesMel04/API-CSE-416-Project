@@ -1,7 +1,7 @@
 import { DraftState, DraftedRosterAssignment } from "../../types";
 
 export const rosterAssignments: DraftedRosterAssignment[] = [
-    { teamId: "team-1", playerId: "shohei-ohtani-lad", assignedPosition: "U" },
+    { teamId: "team-1", playerId: "francisco-lindor-nym", assignedPosition: "U" },
     { teamId: "team-1", playerId: "andrew-abbott-cin", assignedPosition: "SP" },
     { teamId: "team-1", playerId: "juan-soto-nym", assignedPosition: "OF" },
 
