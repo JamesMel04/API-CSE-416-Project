@@ -2,12 +2,11 @@ import express from 'express';
 import path from 'path';
 // Node's file system (read/write files)
 import fs from 'fs';
-
 import cors from "cors"
 import dotenv from 'dotenv';
 import { evaluatePlayers } from './services/evaluation';
 import { Player, ValuationRequest } from './types';
-
+import { mockValuationRequest } from "./__tests__/fixtures/valuationRequest";
 
 dotenv.config();
 
@@ -59,17 +58,5 @@ app.post('/players/valuations', (req, res) => {
 
 //================ ONLY FOR TESTING ==========================
 app.get('/players/valuations/test', (req, res) => {
-    const request: ValuationRequest = {
-        leagueSettings: {
-            budget: 260,
-            rosterSize: 23,
-            teamCount: 12,
-            categoryWeights: {}
-        },
-        draftState: {
-            draftedPlayerIds: []
-        }
-    };
-
-    res.json(evaluatePlayers(players, request));
+    res.json(evaluatePlayers(players, mockValuationRequest));
 });
