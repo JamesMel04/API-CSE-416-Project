@@ -356,7 +356,8 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
 
     for (const player of eligible) {
         const normalizedValue = normalizedValues[player.id]!;
-        const price = Math.pow(dollarsPerRosterSpot * normalizedValue, 1.5);
+        const rawPrice  = Math.pow(dollarsPerRosterSpot * normalizedValue, 1.5);
+        const price = Math.max(1, rawPrice);
     
         auctionPrices[player.id] = price;
     }
