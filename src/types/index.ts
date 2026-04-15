@@ -91,7 +91,7 @@ export interface Player {
     name: string;
     team: string;
     age?: number;
-    positions: string[];
+    positions: PlayerPosition[];
     suggestedValue: number;
     stats: {
         projection: SeasonStats;
@@ -103,29 +103,48 @@ export interface Player {
 // =================== Valuation Request (sent by client) =======================
 export interface LeagueSettings {
     budget: number;
-    rosterSize: number;
     teamCount: number;
+    rosterSlots: RosterSlotCounts;
 }
 
-// Adjust on need
-export type RosterSlot =
-    | "C"   // Catcher
-    | "1B"  // First base
-    | "2B"  // Second base
-    | "3B"  // Third base
-    | "SS"  // Shortstop
-    | "OF"  // Outfield
-    | "U"   // Utility
-    | "P"   // Pitcher
-    | "SP"  // Starting pitcher
-    | "RP"  // Relief pitcher
-    | "CI"  // Corner infield
-    | "MI"  // Middle infield
-    | "IF"  // Infield
-    | "LF"  // Left field
-    | "CF"  // Center field
-    | "RF"  // Right field
-    | "IL"; // Injured list
+// ==================== Player positions from source data ====================
+export const PLAYER_POSITIONS = [
+    "C",    // Catcher
+    "1B",   // First base
+    "2B",   // Second base
+    "3B",   // Third base
+    "SS",   // Shortstop
+    "CI",   // Corner infield
+    "MI",   // Middle infield
+    "IF",   // Infield
+    "LF",   // Left field
+    "CF",   // Center field
+    "RF",   // Right field
+    "OF",   // Outfield
+    "DH",   // Designated hitter
+    "U",    // Utility
+    "P",    // Pitcher
+    "SP",   // Starting pitcher
+    "RP",   // Relief pitcher
+] as const;
+export type PlayerPosition = typeof PLAYER_POSITIONS[number];
+
+// ==================== Draft-kit active roster slots ====================
+export const ROSTER_SLOTS = [
+    "C",    // Catcher
+    "1B",   // First base
+    "2B",   // Second base
+    "3B",   // Third base
+    "SS",   // Shortstop
+    "CI",   // Corner infield
+    "MI",   // Middle infield
+    "OF",   // Outfield
+    "U",    // Utility
+    "P",    // Pitcher
+] as const;
+
+export type RosterSlot = typeof ROSTER_SLOTS[number];
+export type RosterSlotCounts = Record<RosterSlot, number>;
 
 // For each assigned player
 export interface DraftedRosterAssignment {
