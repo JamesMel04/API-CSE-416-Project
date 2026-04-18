@@ -1,4 +1,4 @@
-import { DraftState, DraftedRosterAssignment } from "../../types";
+import { DraftState, DraftedRosterAssignment } from "@/types";
 
 export const rosterAssignments: DraftedRosterAssignment[] = [
     { teamId: "team-1", playerId: "francisco-lindor-nym", assignedPosition: "U" },

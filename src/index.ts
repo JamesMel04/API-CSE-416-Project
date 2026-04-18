@@ -4,9 +4,9 @@ import path from 'path';
 import fs from 'fs';
 import cors from "cors"
 import dotenv from 'dotenv';
-import { evaluatePlayers } from './services/evaluation';
-import { Player, ValuationRequest } from './types';
-import { mockValuationRequest } from "./__tests__/fixtures/valuationRequest";
+import { evaluatePlayers } from '@/services/evaluation';
+import { Player, ValuationRequest } from '@/types';
+import { mockValuationRequest } from "@/__tests__/fixtures/valuationRequest";
 
 dotenv.config();
 
