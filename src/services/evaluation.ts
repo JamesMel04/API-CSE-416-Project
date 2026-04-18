@@ -1,8 +1,9 @@
+import { mean, standardDeviation } from 'simple-statistics';
 import {
     HITTER_SCORING_CATEGORIES,
     PITCHER_SCORING_CATEGORIES,
     ROSTER_SLOTS,
-} from "../types";
+} from "@/types";
 
 import type {
     DraftState,
@@ -21,9 +22,7 @@ import type {
     RosterSlotCounts,
     ValuationRequest,
     LeagueSettings,
-} from "../types";
-
-import { mean, standardDeviation } from "simple-statistics";
+} from "@/types";
 
 //AI used in assistance to writting helper functions
 

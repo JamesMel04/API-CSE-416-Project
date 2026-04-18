@@ -1,4 +1,4 @@
-import { LeagueSettings } from "../../types";
+import { LeagueSettings } from "@/types";
 
 export const mockLeagueSettings: LeagueSettings = {
     budget: 260,      // dollars per team

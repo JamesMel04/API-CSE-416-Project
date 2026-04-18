@@ -1,2 +1,2 @@
-import { HitterStats, Player } from '../types';
+import { HitterStats, Player } from '@/types';
 

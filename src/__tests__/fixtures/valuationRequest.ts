@@ -1,6 +1,6 @@
-import { ValuationRequest } from "../../types";
-import { mockDraftState } from "./draftState";
-import { mockLeagueSettings } from "./leagueSettings";
+import { ValuationRequest } from "@/types";
+import { mockDraftState } from "@/__tests__/fixtures/draftState";
+import { mockLeagueSettings } from "@/__tests__/fixtures/leagueSettings";
 
 // Should be send in the req from the client when asking for player valuations
 export const mockValuationRequest: ValuationRequest = {
