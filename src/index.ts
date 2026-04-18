@@ -12,6 +12,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 // Path to player.json: __dirname is inside dist, we need to go up 1 level using ..
 const playersPath = path.join(__dirname, '..', 'data', 'players.json');
@@ -24,6 +25,11 @@ const players: Player[] = JSON.parse(playersJsonString);
 app.use(cors());
 // Reads JSON puts in req.body
 app.use(express.json());
+
+// Human-friendly status page
+app.get('/', (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+});
 
 // Handle server check requests
 app.get('/health', (req, res) => {
