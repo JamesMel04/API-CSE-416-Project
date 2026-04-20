@@ -7,12 +7,18 @@ import dotenv from 'dotenv';
 import { evaluatePlayers } from '@/services/evaluation';
 import { Player, ValuationRequest } from '@/types';
 import { mockValuationRequest } from "@/__tests__/fixtures/valuationRequest";
-
+import {Pool} from "pg";
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT ?? 5000;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+//const {Pool}=require("pg");
+
+const playersPool=new Pool({
+  connectionString:"postgresql://backend_database_f0sj_user:JWIBRPtkaUUnd3csLBWk4wivJFxZbtUB@dpg-d7aqo02a214c73celv90-a.virginia-postgres.render.com/backend_database_f0sj",
+  ssl:{rejectUnauthorized: false}
+});
 
 // Path to player.json: __dirname is inside dist, we need to go up 1 level using ..
 const playersPath = path.join(__dirname, '..', 'data', 'players.json');
@@ -38,6 +44,7 @@ app.get('/health', (req, res) => {
 
 // Handle players requests
 app.get('/players', (req, res) => {
+  //when implementing database querying here check for code 42P01 to create table
     res.json(players);
 })
 
@@ -61,8 +68,39 @@ app.post('/players/valuations', (req, res) => {
 });
 
 
-
 //================ ONLY FOR TESTING ==========================
 app.get('/players/valuations/test', (req, res) => {
     res.json(evaluatePlayers(players, mockValuationRequest));
+});
+app.get('/players/data/test', async (req,res)=>{
+  try{
+    const players=await playersPool.query("CREATE TABLE test(\
+      id int PRIMARY KEY,\
+       name varchar(50) NOT NULL\
+       );");
+    console.log("called");
+    res.json(players);
+  }catch(error){
+    console.log(error);
+    res.json(error);
+  }
+});
+//**obtain error code for nonexistent table:42P01**
+app.get('/players/data/test2',async (req,res)=>{
+  try{
+    const nulls=await playersPool.query("SELECT * FROM test");
+    res.json(nulls.rows);
+  }catch(err){
+    console.log(err);
+    res.json(err);
+  }
+});
+app.get('/players/data/test3',async (req,res)=>{
+  try{
+    const nulls=await playersPool.query("INSERT INTO test VALUES ('5', 'testerino')");
+    res.json(nulls);
+  }catch(err){
+    console.log(err);
+    res.json(err);
+  }
 });
