@@ -16,7 +16,7 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 //const {Pool}=require("pg");
 
 const playersPool=new Pool({
-  connectionString:"postgresql://backend_database_f0sj_user:JWIBRPtkaUUnd3csLBWk4wivJFxZbtUB@dpg-d7aqo02a214c73celv90-a.virginia-postgres.render.com/backend_database_f0sj",
+  connectionString:process.env.DB_LINK,
   ssl:{rejectUnauthorized: false}
 });
 

@@ -5,8 +5,7 @@
     "module": "commonjs",
     "target": "ES2020",
     "lib": ["esnext"],
-    "types": ["node"],
-
+    "types": ["node"],    
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
