@@ -1,19 +1,18 @@
-// Load express library
 import express from 'express';
-// Node's module For building paths
 import path from 'path';
 // Node's file system (read/write files)
 import fs from 'fs';
-
 import cors from "cors"
 import dotenv from 'dotenv';
+import { evaluatePlayers } from '@/services/evaluation';
+import { Player, ValuationRequest } from '@/types';
+import { mockValuationRequest } from "@/__tests__/fixtures/valuationRequest";
 
 dotenv.config();
 
-// Creates Express application: Obj for the web server
-// Get port number, if not provided, use 3000
 const app = express();
-const PORT = process.env.PORT ?? 3000;
+const PORT = process.env.PORT ?? 5000;
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 // Path to player.json: __dirname is inside dist, we need to go up 1 level using ..
 const playersPath = path.join(__dirname, '..', 'data', 'players.json');
@@ -21,11 +20,16 @@ const playersPath = path.join(__dirname, '..', 'data', 'players.json');
 const playersJsonString = fs.readFileSync(playersPath, 'utf-8');
 // Create an in-memory json object that holds the player data 
 // *Note*: The approach used here is to have the data stored in an object once the server runs, this allows faster return on request but may contain stale data if data changes, it could be good for the MVP, as we don't have real DB set up yet.  
-const players = JSON.parse(playersJsonString);
+const players: Player[] = JSON.parse(playersJsonString);
 
 app.use(cors());
 // Reads JSON puts in req.body
 app.use(express.json());
+
+// Human-friendly status page
+app.get('/', (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+});
 
 // Handle server check requests
 app.get('/health', (req, res) => {
@@ -42,3 +46,23 @@ app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
 })
 
+// User request with ValuationRequest: (LeagueSettings, DraftState)
+app.post('/players/valuations', (req, res) => {
+    try {
+        const request = req.body as ValuationRequest;
+        //Calling our valuation service on the players
+        const valuations = evaluatePlayers(players, request);
+        res.json(valuations);
+    } catch (error) {
+        res.status(400).json({
+            error: error instanceof Error ? error.message : 'Failed to evaluate players',
+        });
+    }
+});
+
+
+
+//================ ONLY FOR TESTING ==========================
+app.get('/players/valuations/test', (req, res) => {
+    res.json(evaluatePlayers(players, mockValuationRequest));
+});
