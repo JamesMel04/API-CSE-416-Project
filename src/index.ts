@@ -4,16 +4,77 @@ import path from 'path';
 import fs from 'fs';
 import cors from "cors"
 import dotenv from 'dotenv';
-import { evaluatePlayers } from '@/services/evaluation';
 import { Player, PlayerPools, ValuationRequest } from '@/types';
-import { mockValuationRequest } from "@/__tests__/fixtures/valuationRequest";
 import {Pool} from "pg";
 dotenv.config();
 import crypto from "crypto";
 import { hashPassword, verifyPassword } from "@/utils/password";
+import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
+
 
 
 const app = express();
+
+// ================ User Session ==========================
+type AuthenticatedRequest = Request & {
+  user?: {
+    id: number;
+    email: string;
+  };
+};
+
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    throw new Error("JWT_SECRET is required");
+  }
+
+  return secret;
+}
+
+// Createt tokens for the user
+function createAuthToken(user: { id: number; email: string }) {
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+    },
+    getJwtSecret(),
+    {
+      expiresIn: "1d",
+    }
+  );
+}
+
+function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing auth token" });
+  }
+
+  const token = authHeader.slice("Bearer ".length);
+
+  try {
+    const payload = jwt.verify(token, getJwtSecret()) as {
+      id: number;
+      email: string;
+    };
+
+    req.user = {
+      id: payload.id,
+      email: payload.email,
+    };
+
+    next();
+  } catch {
+    return res.status(401).json({ error: "Invalid auth token" });
+  }
+}
+//=========================================================
+
 const PORT = process.env.PORT ?? 5000;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 //const {Pool}=require("pg");
@@ -162,12 +223,20 @@ app.post("/auth/login", async (req, res) => {
 
     const user = result.rows[0];
 
+    // password check
     if (!user || !verifyPassword(password, user.password_hash)) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
+    // Create token for the user
+    const token = createAuthToken({
+      id: user.id,
+      email: user.email,
+    });
+
     return res.status(200).json({
       message: "Login successful",
+      token,
       user: {
         id: user.id,
         email: user.email,
@@ -180,45 +249,26 @@ app.post("/auth/login", async (req, res) => {
 });
 
 // generates an api key
-app.post("/api-keys", async (req, res) => {
-  const { email } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ error: "Email is required" });
+app.post("/api-keys", requireAuth, async (req: AuthenticatedRequest, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "Missing auth user" });
   }
 
   try {
-    const userResult = await dbPool.query(
-      `SELECT id
-       FROM api_users
-       WHERE email = $1`,
-      [email]
-    );
-
-    // gets user by email
-    const user = userResult.rows[0];
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    // finds the current active API key for that user and marks it as revoked
     await dbPool.query(
       `UPDATE api_keys
        SET revoked_at = NOW()
        WHERE user_id = $1
        AND revoked_at IS NULL`,
-      [user.id]
+      [req.user.id]
     );
 
-    // create a new random key
     const apiKey = `api_${crypto.randomBytes(32).toString("hex")}`;
 
-    //save the new active key
     await dbPool.query(
       `INSERT INTO api_keys (user_id, api_key)
        VALUES ($1, $2)`,
-      [user.id, apiKey]
+      [req.user.id, apiKey]
     );
 
     return res.status(201).json({
@@ -232,23 +282,20 @@ app.post("/api-keys", async (req, res) => {
 });
 
 //get existing user api key
-app.get("/api-keys", async (req, res) => {
-  const email = req.query.email;
-
-  if (typeof email !== "string") {
-    return res.status(400).json({ error: "Email is required" });
+app.get("/api-keys", requireAuth, async (req: AuthenticatedRequest, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "Missing auth user" });
   }
 
   try {
     const result = await dbPool.query(
-      `SELECT api_keys.api_key
+      `SELECT api_key
        FROM api_keys
-       JOIN api_users ON api_users.id = api_keys.user_id
-       WHERE api_users.email = $1
-       AND api_keys.revoked_at IS NULL
-       ORDER BY api_keys.created_at DESC
+       WHERE user_id = $1
+       AND revoked_at IS NULL
+       ORDER BY created_at DESC
        LIMIT 1`,
-      [email]
+      [req.user.id]
     );
 
     return res.status(200).json({
@@ -259,6 +306,7 @@ app.get("/api-keys", async (req, res) => {
     return res.status(500).json({ error: "Failed to load API key" });
   }
 });
+
 
 
 //========================================================
