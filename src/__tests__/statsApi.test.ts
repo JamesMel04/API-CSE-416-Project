@@ -133,22 +133,22 @@ describe("getAllPlayers", () => {
 
         // Hitter checks
         const hitter = result.hitters[0];
-        expect(hitter.name).toBe('Mookie Betts');
-        expect(hitter.id).toBe(1);
-        expect(hitter.team).toBe('LAD');
-        expect(hitter.position).toBe('RF');
-        expect(hitter.stats.projection.hitting).toBeDefined();
-        expect(hitter.stats.projection.hitting.hr).toBe(20);
-        expect(hitter.stats.lastYear.hitting.avg).toBeCloseTo(0.3);
-        expect(hitter.stats.threeYearAvg.hitting.hr).toBe(20);
+        expect(hitter?.name).toBe('Mookie Betts');
+        expect(hitter?.id).toBe(1);
+        expect(hitter?.team).toBe('LAD');
+        expect(hitter?.position).toBe('RF');
+        expect(hitter?.stats.projection.hitting).toBeDefined();
+        expect(hitter?.stats.projection.hitting.hr).toBe(20);
+        expect(hitter?.stats.lastYear.hitting.avg).toBeCloseTo(0.3);
+        expect(hitter?.stats.threeYearAvg.hitting.hr).toBe(20);
 
         // Pitcher checks
         const pitcher = result.pitchers[0];
-        expect(pitcher.name).toBe('Clayton Kershaw');
-        expect(pitcher.id).toBe(2);
-        expect(pitcher.stats.projection.pitching).toBeDefined();
-        expect(pitcher.stats.projection.pitching.era).toBeCloseTo(3.0);
-        expect(pitcher.stats.projection.pitching.so).toBe(200);
+        expect(pitcher?.name).toBe('Clayton Kershaw');
+        expect(pitcher?.id).toBe(2);
+        expect(pitcher?.stats.projection.pitching).toBeDefined();
+        expect(pitcher?.stats.projection.pitching.era).toBeCloseTo(3.0);
+        expect(pitcher?.stats.projection.pitching.so).toBe(200);
     });
 
 });
