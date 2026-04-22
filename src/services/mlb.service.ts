@@ -126,10 +126,11 @@ export async function getAllPlayerStats(playerId : number, isPitcher : boolean) 
 
     // Filter to only past three season's stats
     const threeYears = (yearByYear.filter((stat) => 
-        ["2023", "2024", "2025"].includes(stat.season)).map((stats) => mapStats(stats, group))) as PitcherStats[] | HitterStats[];
+        ["2023", "2024", "2025"].includes(stat.season)).map((stats) => stats.stat)) as PitcherStats[] | HitterStats[];
+
 
     const lastYearStats = yearByYear.find((stat: any) => 
-        stat.season === "2025")?.stat || null;
+        stat.season === "2025")?.stat || {};
 
     const threeYearAvgStats = averageStats(threeYears);
 
@@ -194,7 +195,8 @@ export async function getPlayerProjectedStats(playerId : number, group: "hitting
 /** Gets age of player */
 export async function getPlayerAge(playerId : number) {
     const res : any = await api.get(`/people/${playerId}`);
-    return res.currentAge;
+    console.log(res);
+    return res.data.currentAge;
 }
 
 /**
@@ -274,7 +276,7 @@ export function mapStats(stats: any, group : "hitting" | "pitching") : HitterSta
             r: stats.runsScoredPer9,
             hr: stats.homeRunsPer9,
             hld: stats.holds,
-            hb: stats.hitsBatsmen,
+            hb: stats.hitBatsmen,
             bb: stats.baseOnBalls, 
             so: stats.strikeOuts, 
             whip: parseFloat(stats.whip),

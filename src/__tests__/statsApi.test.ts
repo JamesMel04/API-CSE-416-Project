@@ -68,8 +68,8 @@ describe("getRoster", () => {
 });
 
 describe('averageStats', () => {
-    test('returns null for an empty array', () => {
-        expect(averageStats([])).toBeNull();
+    test('returns {} for an empty array', () => {
+        expect(averageStats([])).toEqual({});
     });
 
     test('correctly averages stats across seasons', () => {
@@ -80,7 +80,7 @@ describe('averageStats', () => {
         ] as PitcherStats[];
 
         // expect.closeTo() is needed or else there's floating point errors
-        expect(averageStats(stats)).toEqual({ homeRuns: 20, avg: expect.closeTo(0.3) });
+        expect(averageStats(stats)).toEqual({ hr: 20, avg: expect.closeTo(0.3) });
     });
 
     test('skips non-numeric fields', () => {
@@ -167,18 +167,31 @@ describe("mapStats", () => {
         const result = mapStats(mockPitcherStats, "pitching");
         const stats = mockPitcherStats;
         expect(result).toEqual({
-            gp: stats.gamesPlayed, gs: stats.gamesStarted,
-            w: stats.wins, l: stats.losses, sv: stats.saves, hld: stats.holds,
-            k: stats.strikeOuts, bb: stats.baseOnBalls, er: stats.earnedRuns,
+            gp: stats.gamesPlayed, 
+            gs: stats.gamesStarted,
+            w: stats.wins, 
+            l: stats.losses, 
+            sv: stats.saves, 
+            hld: stats.holds,
+            so: stats.strikeOuts, 
+            bb: stats.baseOnBalls, 
+            er: stats.earnedRuns,
             ip: parseFloat(stats.inningsPitched),
-            era: parseFloat(stats.era), whip: parseFloat(stats.whip),
+            era: parseFloat(stats.era), 
+            whip: parseFloat(stats.whip),
+            h: stats.hits,
+            hb: stats.hitBatsmen,
+            r: stats.runsScoredPer9,
+            hr: stats.homeRunsPer9,
+            sho: stats.shutouts,
+            avg: 0,
             fpts: 0,
         })
     })
 })
 
 describe("getPlayerAge", () => {
-    const testPlayer = {currentAge: 31};
+    const testPlayer = {data: {currentAge: 31} };
     test("returns correct age", async () => { 
         mockGet.mockResolvedValueOnce(testPlayer);
         const result = await getPlayerAge(1234);
