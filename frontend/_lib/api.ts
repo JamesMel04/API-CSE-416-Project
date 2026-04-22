@@ -10,6 +10,7 @@ type LoginUserInput = {
     password: string;
 };
 
+// Creates an account
 export async function registerUser(input: RegisterUserInput) {
     const response = await fetch(`${BACKEND_URL}/auth/register`, {
         method: "POST",
@@ -28,6 +29,7 @@ export async function registerUser(input: RegisterUserInput) {
     return data;
 }
 
+// Log in behavior
 export async function loginUser(input: LoginUserInput) {
     const response = await fetch(`${BACKEND_URL}/auth/login`, {
         method: "POST",
@@ -46,13 +48,21 @@ export async function loginUser(input: LoginUserInput) {
     return data;
 }
 
-export async function generateApiKey(email: string) { 
+// gets local token
+function getAuthHeaders() {
+    const token = localStorage.getItem("apiAuthToken");
+
+    return {
+        Authorization: `Bearer ${token}`,
+    };
+}
+// pass token so backend can identify the user
+export async function generateApiKey() { 
     const response = await fetch(`${BACKEND_URL}/api-keys`, {
         method: "POST",
-        headers: { 
-            "Content-Type": "application/json", 
-        }, 
-        body: JSON.stringify({ email }), 
+        headers: {
+            ...getAuthHeaders(),
+        },
     });
   
     const data = await response.json();
@@ -63,11 +73,14 @@ export async function generateApiKey(email: string) {
   
     return data.apiKey as string;
 }
-  
-export async function getApiKey(email: string) { 
-    const response = await fetch( 
-        `${BACKEND_URL}/api-keys?email=${encodeURIComponent(email)}` 
-    ); 
+
+// Used for displaying API key if already exists
+export async function getApiKey() { 
+    const response = await fetch(`${BACKEND_URL}/api-keys`, {
+        headers: {
+            ...getAuthHeaders(),
+        },
+    });
   
     const data = await response.json(); 
   
@@ -76,4 +89,4 @@ export async function getApiKey(email: string) {
     } 
   
     return data.apiKey as string; 
-} 
+}

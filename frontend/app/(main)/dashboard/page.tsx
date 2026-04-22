@@ -17,18 +17,18 @@ export default function DashboardPage() {
   // Display the key automatically if user has one
   useEffect(() => {
     const loadExistingKey = async () => {
-      const email = localStorage.getItem("apiUserEmail");
+      const token  = localStorage.getItem("apiAuthToken");
   
-      if (!email) {
+      if (!token) {
         router.push("/login");
         return;
       }
   
       try {
-        const existingKey = await getApiKey(email);
+        const existingKey = await getApiKey();
         setApiKey(existingKey);
       } catch {
-        localStorage.removeItem("apiUserEmail");
+        localStorage.removeItem("apiAuthToken");
         router.push("/login");
       }
     };
@@ -38,9 +38,9 @@ export default function DashboardPage() {
 
   // create a brand new key
   const createKey = async () => {
-    const email = localStorage.getItem("apiUserEmail"); 
+    const token = localStorage.getItem("apiAuthToken"); 
 
-    if (!email) { 
+    if (!token) { 
       router.push("/login"); 
       return; 
     } 
@@ -49,7 +49,7 @@ export default function DashboardPage() {
     setError("");
 
     try {
-      const key = await generateApiKey(email); 
+      const key = await generateApiKey(); 
       setApiKey(key);
       setStatus("API key generated. Copy it now.");
     } catch (err) {
