@@ -13,7 +13,7 @@ vi.mock('axios', () => ({
     },
 }));
 
-import { getTeams, getRoster, averageStats, getAllPlayerStats, mapStats, getPlayerAge } from '../services/mlb.service';
+import { getTeams, getRoster, averageStats, getAllPlayerStats, mapStats, getPlayerAge, getAllPlayers } from '../services/mlb.service';
 import { PitcherStats } from '@/types';
 
 describe('getTeams', () => {
@@ -43,6 +43,114 @@ describe('getTeams', () => {
 
         expect(result).toEqual([]);
     });
+});
+
+// Generated with AI
+describe("getAllPlayers", () => {
+    beforeEach(() => {
+        mockGet.mockReset();
+    })
+
+    test('returns hitters and pitchers with correct structure', async () => {
+        // 1. getTeams
+        mockGet.mockResolvedValueOnce({
+            data: {
+                teams: [{ abbreviation: 'LAD', id: 119 }],
+            },
+        });
+
+        // 2. getRoster - one hitter, one pitcher
+        mockGet.mockResolvedValueOnce({
+            data: {
+                roster: [
+                    {
+                        person: { fullName: 'Mookie Betts', id: 1 },
+                        position: { abbreviation: 'RF' },
+                        status: { code: 'A' },
+                    },
+                    {
+                        person: { fullName: 'Clayton Kershaw', id: 2 },
+                        position: { abbreviation: 'P' },
+                        status: { code: 'A' },
+                    },
+                ],
+            },
+        });
+
+        const fullHittingStat = {
+            atBats: 500, runs: 80, hits: 150, doubles: 30, triples: 5,
+            homeRuns: 20, rbi: 70, baseOnBalls: 50, strikeOuts: 100,
+            stolenBases: 10, caughtStealing: 3, avg: '.300', obp: '.380', slg: '.500',
+        };
+
+        const fullPitchingStat = {
+            gamesPlayed: 30, era: '3.00', gamesStarted: 28, wins: 12,
+            losses: 5, shutouts: 1, saves: 0, inningsPitched: '180.0',
+            hits: 150, earnedRuns: 60, runsScoredPer9: 3.5, homeRunsPer9: 1.0,
+            holds: 0, hitsBatsmen: 5, baseOnBalls: 40, strikeOuts: 200,
+            whip: '1.05',
+        };
+
+        // 3. getPlayerAge - Mookie
+        mockGet.mockResolvedValueOnce({ data: { people: [{ currentAge: 31 }] } });
+
+        // 4. Mookie YBY stats (hitting)
+        mockGet.mockResolvedValueOnce({
+            data: { stats: [{ splits: [
+                { season: '2023', stat: fullHittingStat },
+                { season: '2024', stat: fullHittingStat },
+                { season: '2025', stat: fullHittingStat },
+            ] }] },
+        });
+
+        // 5. Mookie projected stats (hitting)
+        mockGet.mockResolvedValueOnce({
+            data: { stats: [{ splits: [{ stat: fullHittingStat }] }] },
+        });
+
+        // 6. getPlayerAge - Kershaw
+        mockGet.mockResolvedValueOnce({ data: { people: [{ currentAge: 36 }] } });
+
+        // 7. Kershaw YBY stats (pitching)
+        mockGet.mockResolvedValueOnce({
+            data: { stats: [{ splits: [
+                { season: '2023', stat: fullPitchingStat },
+                { season: '2024', stat: fullPitchingStat },
+                { season: '2025', stat: fullPitchingStat },
+            ] }] },
+        });
+
+        // 8. Kershaw projected stats (pitching)
+        mockGet.mockResolvedValueOnce({
+            data: { stats: [{ splits: [{ stat: fullPitchingStat }] }] },
+        });
+
+        const result = await getAllPlayers();
+
+        // Structure checks
+        expect(result.hitters).toHaveLength(1);
+        expect(result.pitchers).toHaveLength(1);
+
+        // Hitter checks
+        const hitter = result.hitters[0];
+        expect(hitter.name).toBe('Mookie Betts');
+        expect(hitter.id).toBe(1);
+        expect(hitter.team).toBe('LAD');
+        expect(hitter.position).toBe('RF');
+        expect(hitter.stats.projection.hitting).toBeDefined();
+        expect(hitter.stats.projection.hitting.hr).toBe(20);
+        expect(hitter.stats.lastYear.hitting.avg).toBeCloseTo(0.3);
+        expect(hitter.stats.threeYearAvg.hitting.hr).toBe(20);
+
+        // Pitcher checks
+        const pitcher = result.pitchers[0];
+        expect(pitcher.name).toBe('Clayton Kershaw');
+        expect(pitcher.id).toBe(2);
+        expect(pitcher.stats.projection.pitching).toBeDefined();
+        expect(pitcher.stats.projection.pitching.era).toBeCloseTo(3.0);
+        expect(pitcher.stats.projection.pitching.so).toBe(200);
+    });
+
 });
 
 describe("getRoster", () => {
