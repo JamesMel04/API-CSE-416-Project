@@ -9,6 +9,8 @@ import { Player, PlayerPools, ValuationRequest } from '@/types';
 import { mockValuationRequest } from "@/__tests__/fixtures/valuationRequest";
 import {Pool} from "pg";
 dotenv.config();
+import crypto from "crypto";
+
 
 const app = express();
 const PORT = process.env.PORT ?? 5000;
@@ -50,6 +52,114 @@ const players: Player[] = JSON.parse(playersJsonString);
 app.use(cors());
 // Reads JSON puts in req.body
 app.use(express.json());
+
+//================= FOR API USERS ========================
+type ApiUser = {
+  id: number;
+  email: string;
+  password: string; // temporary only; later store password_hash
+  apiKey?: string;
+};
+
+const apiUsers: ApiUser[] = [];
+
+//handle user create account
+app.post("/auth/register", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
+
+  const existingUser = apiUsers.find((user) => user.email === email);
+
+  if (existingUser) {
+    return res.status(409).json({ error: "Account already exists" });
+  }
+
+  const newUser: ApiUser = {
+    id: apiUsers.length + 1,
+    email,
+    password,
+  };
+
+  //add user to use array
+  apiUsers.push(newUser);
+
+  return res.status(201).json({
+    message: "Account created successfully",
+    user: {
+      id: newUser.id,
+      email: newUser.email,
+    },
+  });
+});
+
+//handle user login
+app.post("/auth/login", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required" });
+  }
+
+  const existingUser = apiUsers.find((user) => user.email === email);
+
+  if (!existingUser || existingUser.password !== password) {
+    return res.status(401).json({ error: "Invalid email or password" });
+  }
+
+  return res.status(200).json({
+    message: "Login successful",
+    user: {
+      id: existingUser.id,
+      email: existingUser.email,
+    },
+  });
+});
+
+// generates an api key
+app.post("/api-keys", (req, res) => {
+  const { email } = req.body;
+
+  const existingUser = apiUsers.find((user) => user.email === email);
+
+  if (!existingUser) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  const apiKey = `mlb_${crypto.randomUUID().replaceAll("-", "")}`;
+
+  existingUser.apiKey = apiKey;
+
+  return res.status(201).json({
+    apiKey,
+    message: "API key generated successfully",
+  });
+});
+
+//get existing user api key
+app.get("/api-keys", (req, res) => {
+  const email = req.query.email;
+
+  if (typeof email !== "string") {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  const existingUser = apiUsers.find((user) => user.email === email);
+
+  if (!existingUser) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  return res.status(200).json({
+    apiKey: existingUser.apiKey ?? "",
+  });
+});
+
+
+//========================================================
+
 
 // Human-friendly status page
 app.get('/', (req, res) => {
