@@ -71,7 +71,7 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
     // Hitters
     for (const category of HITTER_SCORING_CATEGORIES){
         // Array of all player's stat of that category
-        const values = hitters.map(player => player.stats.projection.hitter[category]);
+        const values = hitters.map(player => player.stats.projection.hitting[category]);
 
         hitterMean[category] = values.length > 0 ? mean(values) : 0;
         hitterStdDev[category] = values.length > 1 ? standardDeviation(values) : 0;
@@ -80,7 +80,7 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
     // Pitchers
     for (const category of PITCHER_SCORING_CATEGORIES){
         // Array of all player's stat of that category
-        const values = pitchers.map(player => player.stats.projection.pitcher[category])
+        const values = pitchers.map(player => player.stats.projection.pitching[category])
 
         pitcherMean[category] = values.length > 0 ? mean(values) : 0;
         pitcherStdDev[category] = values.length > 1 ? standardDeviation(values) : 0;
@@ -108,7 +108,7 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
 
         //For each category
         for (const category of HITTER_SCORING_CATEGORIES) {
-            const value = player.stats.projection.hitter[category];
+            const value = player.stats.projection.hitting[category];
             const mean = hitterMean[category];
             const stdDev = hitterStdDev[category];
             const isNegative = NEGATIVE_HITTER_CATEGORIES.has(category);
@@ -130,7 +130,7 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
 
         //For each category
         for (const category of PITCHER_SCORING_CATEGORIES) {
-            const value = player.stats.projection.pitcher[category];
+            const value = player.stats.projection.pitching[category];
             const mean = pitcherMean[category];
             const stdDev = pitcherStdDev[category];
             const isNegative = NEGATIVE_PITCHER_CATEGORIES.has(category);
@@ -396,8 +396,8 @@ function separatePools(eligible: Player[]) : PlayerPools {
         );
 
         // Check if the player have the stat block
-        const hasHitterStats = player.stats?.projection?.hitter !== undefined;
-        const hasPitcherStats = player.stats?.projection?.pitcher !== undefined;
+        const hasHitterStats = player.stats?.projection?.hitting !== undefined;
+        const hasPitcherStats = player.stats?.projection?.pitching !== undefined;
 
         if (hasHitterPosition && hasHitterStats) {
             hitters.push(player);
