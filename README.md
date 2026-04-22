@@ -253,3 +253,16 @@ Response shape is the same as `POST /players/valuations`.
 | 400 | Invalid valuation request payload or processing error |
 
 
+# Database
+The database will have three different tables:
+**Players table**: this will contain global player data like ID, injuryStatus, etc.
+**Hitter_stats**: This will contain specific hitter_stats (projection, last year, and three year average).
+**Pitcher_stats**: Same as hitter_stats table, but for pitchers.
+
+Both `hitter_stats` and `pitcher_stats` will be linked to the `players` table with an ID. Then, a JOIN will be utilized to return the players along with their stats, separated into hitter and pitcher pools.
+
+For ensuring the DB isn't refreshed with each request, a singleton pattern is used with a dedicated `last_refresh` table. This table will simply have one row with id=1, that contains the last refresh time under `refreshed_at`.
+| 		last_refresh      			|
+|  id  | 		refreshed_at 		|
+| ---- | 		------------		|
+|  1   | 2026-01-01T12:36:43.034Z 	|
