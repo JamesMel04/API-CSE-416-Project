@@ -31,25 +31,28 @@ export async function getAllPlayers(): Promise<PlayerPools> {
     for (const t of teams) {
         const roster = await getRoster(t.id, t.abbreviation);
         for (const p of roster) {
+            // Grab age as well (this is expensive)
+            const age = await getPlayerAge(p.id);
             // Special case for Ohtani
-
             if (p.position === "TWP") {
                 const hitterStats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
                 const pitcherStats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
-                hitters.push({ ...p, positions: [p.position], suggestedValue: 0, stats: hitterStats });
-                pitchers.push({ ...p, positions: [p.position], suggestedValue: 0, stats: pitcherStats });
+                hitters.push({ ...p, positions: [p.position], age, suggestedValue: 0, stats: hitterStats });
+                pitchers.push({ ...p, positions: [p.position], age, suggestedValue: 0, stats: pitcherStats });
             } else if (p.position === "P") {
                 const stats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
-                pitchers.push({ ...p, positions: [p.position], suggestedValue: 0, stats });
+                pitchers.push({ ...p, positions: [p.position], age, suggestedValue: 0, stats });
             } else {
                 const stats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
-                hitters.push({ ...p, positions: [p.position], suggestedValue: 0, stats });
+                hitters.push({ ...p, positions: [p.position], age, suggestedValue: 0, stats });
             }
         }
     }
 
     return { hitters, pitchers };
 }
+
+
 
 /**
  * Grabs list of all teams, returns teams with only the neccessary information
@@ -186,6 +189,12 @@ export async function getPlayerProjectedStats(playerId : number, group: "hitting
     const res : any = await api.get(`/people/${playerId}/stats`, 
         {params: { stats: "projected", group: group }});
     return mapStats(res.data.stats?.[0]?.splits?.[0]?.stat, group) || [];
+}
+
+/** Gets age of player */
+export async function getPlayerAge(playerId : number) {
+    const res : any = await api.get(`/people/${playerId}`);
+    return res.currentAge;
 }
 
 /**

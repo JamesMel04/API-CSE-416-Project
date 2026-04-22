@@ -114,7 +114,7 @@ export interface Player {
     team: string;
     teamId: number;
     position: string;
-    age?: number;
+    age: number;
     positions: PlayerPosition[];
     suggestedValue: number;
      /**

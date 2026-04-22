@@ -13,7 +13,8 @@ vi.mock('axios', () => ({
     },
 }));
 
-import { getTeams, getRoster, averageStats, getAllPlayerStats, mapStats } from '../services/mlb.service';
+import { getTeams, getRoster, averageStats, getAllPlayerStats, mapStats, getPlayerAge } from '../services/mlb.service';
+import { PitcherStats } from '@/types';
 
 describe('getTeams', () => {
     beforeEach(() => {
@@ -73,10 +74,10 @@ describe('averageStats', () => {
 
     test('correctly averages stats across seasons', () => {
         const stats = [
-            { season: '2023', stat: { homeRuns: 20, avg: .300,  } },
-            { season: '2024', stat: { homeRuns: 30, avg: .280 } },
-            { season: '2025', stat: { homeRuns: 10, avg: .320 } },
-        ];
+            { hr: 20, avg: .300,  },
+            { hr: 30, avg: .280 },
+            { hr: 10, avg: .320 },
+        ] as PitcherStats[];
 
         // expect.closeTo() is needed or else there's floating point errors
         expect(averageStats(stats)).toEqual({ homeRuns: 20, avg: expect.closeTo(0.3) });
@@ -84,13 +85,13 @@ describe('averageStats', () => {
 
     test('skips non-numeric fields', () => {
         const stats = [
-            { season: '2023', stat: { homeRuns: 20 } },
-            { season: '2024', stat: { homeRuns: 30 } },
-        ];
+            {  hr: 20 },
+            { hr: 30  },
+        ] as PitcherStats[];
 
         const result = averageStats(stats);
 
-        expect(result.homeRuns).toEqual(25);
+        expect(result.hr).toEqual(25);
     });
 });
 
@@ -173,5 +174,14 @@ describe("mapStats", () => {
             era: parseFloat(stats.era), whip: parseFloat(stats.whip),
             fpts: 0,
         })
+    })
+})
+
+describe("getPlayerAge", () => {
+    const testPlayer = {currentAge: 31};
+    test("returns correct age", async () => { 
+        mockGet.mockResolvedValueOnce(testPlayer);
+        const result = await getPlayerAge(1234);
+        expect(result).toEqual(31);
     })
 })
