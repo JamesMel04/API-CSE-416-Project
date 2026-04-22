@@ -10,7 +10,8 @@ const playersPool = new Pool({
     connectionString: process.env.DB_LINK,
 });
 
-// Local players pool
+// Local players pool, uncomment when you want to run tests.
+
 // const playersPool=new Pool({
 //     host: 'localhost',
 //     port: 5432,
