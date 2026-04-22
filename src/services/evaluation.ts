@@ -22,6 +22,8 @@ import type {
     RosterSlotCounts,
     ValuationRequest,
     LeagueSettings,
+    HitterPlayer,
+    PitcherPlayer
 } from "@/types";
 
 //AI used in assistance to writting helper functions
@@ -30,11 +32,11 @@ import type {
  * Evaluates all eligible players and computes auction prices base on
  * the current league settings and draft state. 
  * Assumes all players already have some projection stats.
- * @param players All players available
+ * @param players All players available, separated into {hitters, pitchers}
  * @param request The valuation request containing league settings and draft state
  * @returns An array of player valuations with normalized values and auction prices
  */
-export function evaluatePlayers(players: Player[], request: ValuationRequest): PlayerValuation[] {
+export function evaluatePlayers(players: PlayerPools, request: ValuationRequest): PlayerValuation[] {
     const {leagueSettings, draftState} = request;
     const rosterSize = Object.values(leagueSettings.rosterSlots).reduce(
         (sum, count) => sum + count,
@@ -50,15 +52,20 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
     );
 
     // Gets the players who have not being drafted yet
-    const eligible: Player[] = players.filter(
-        (player) => !draftedPlayerIds.has(player.id)
-    );
+    // const eligible: Player[] = players.filter(
+    //     (player) => !draftedPlayerIds.has(player.id)
+    // );
+    // Combine eligible hitters and pitchers into one array
+    const eligibleHitters : HitterPlayer[] = players.hitters.filter((player) => !draftedPlayerIds.has(player.id));
+    const eligiblePitchers : PitcherPlayer[] = players.pitchers.filter((player) => !draftedPlayerIds.has(player.id));
+    const eligible : Player[] = [...eligibleHitters, ...eligiblePitchers];
 
     // =====================================================================================================
+    // Invariant: players should already be split when passed into this evaluation.
     // [Step 2: Separate players into different pools: Hitters and Pitchers] 
 
-    const {hitters, pitchers}  = separatePools(eligible);
-    
+    // const {hitters, pitchers}  = separatePools(eligible);
+    const {hitters, pitchers} = players;
     // =====================================================================================================
     // [Step 3: Calculate the mean and standard deviation across the eligible player pools]
 
@@ -376,40 +383,6 @@ export function evaluatePlayers(players: Player[], request: ValuationRequest): P
 
 
 const PITCHER_POSITIONS = new Set(["P", "SP", "RP"]);
-
-/**
- * Separate an array of player into hitters and pitchers
- * @param players 
- * @returns A pool with hitters, pitchers separated
- */
-function separatePools(eligible: Player[]) : PlayerPools {
-    const hitters: Player[] = [];
-    const pitchers: Player[] = [];
-
-    for (const player of eligible) {
-        const hasPitcherPosition = player.positions.some((pos) =>
-            PITCHER_POSITIONS.has(pos)
-        );
-
-        const hasHitterPosition = player.positions.some((pos) =>
-            !PITCHER_POSITIONS.has(pos)
-        );
-
-        // Check if the player have the stat block
-        const hasHitterStats = player.stats?.projection?.hitting !== undefined;
-        const hasPitcherStats = player.stats?.projection?.pitching !== undefined;
-
-        if (hasHitterPosition && hasHitterStats) {
-            hitters.push(player);
-        }
-
-        if (hasPitcherPosition && hasPitcherStats) {
-            pitchers.push(player);
-        }
-    }
-
-    return { hitters, pitchers };
-}
 
 /**
  * Computes a player's age adjustment factor using a quadratic curve centered

@@ -1,17 +1,17 @@
 import { DraftState, DraftedRosterAssignment } from "@/types";
 
 export const rosterAssignments: DraftedRosterAssignment[] = [
-    { teamId: "team-1", playerId: "francisco-lindor-nym", assignedPosition: "U" },
-    { teamId: "team-1", playerId: "andrew-abbott-cin", assignedPosition: "P" },
-    { teamId: "team-1", playerId: "juan-soto-nym", assignedPosition: "OF" },
+    { teamId: "team-1", playerId: 1, assignedPosition: "U" },
+    { teamId: "team-1", playerId: 2, assignedPosition: "P" },
+    { teamId: "team-1", playerId: 3, assignedPosition: "OF" },
 
-    { teamId: "team-2", playerId: "bobby-witt-jr-kc", assignedPosition: "SS" },
-    { teamId: "team-2", playerId: "freddie-freeman-lad", assignedPosition: "1B" },
-    { teamId: "team-2", playerId: "spencer-strider-atl", assignedPosition: "P" },
+    { teamId: "team-2", playerId: 4, assignedPosition: "SS" },
+    { teamId: "team-2", playerId: 5, assignedPosition: "1B" },
+    { teamId: "team-2", playerId: 6, assignedPosition: "P" },
 
-    { teamId: "team-3", playerId: "adley-rutschman-bal", assignedPosition: "C" },
-    { teamId: "team-3", playerId: "jose-ramirez-cle", assignedPosition: "3B" },
-    { teamId: "team-3", playerId: "emmanuel-clase-cle", assignedPosition: "P" },
+    { teamId: "team-3", playerId: 7, assignedPosition: "C" },
+    { teamId: "team-3", playerId: 8, assignedPosition: "3B" },
+    { teamId: "team-3", playerId: 9, assignedPosition: "P" },
 ];
 
 export const mockDraftState: DraftState = { rosterAssignments };

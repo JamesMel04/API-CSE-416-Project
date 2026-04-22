@@ -2,7 +2,7 @@
  * Functions to communicate with the MLB Stats API
 */
 import axios from "axios";
-import { HitterStats, PitcherStats, Player, PlayerPools, PlayerPosition, SeasonStats } from "../types";
+import { HitterPlayer, HitterSeasonStats, HitterStats, PitcherPlayer, PitcherSeasonStats, PitcherStats, Player, PlayerPools, PlayerPosition, SeasonStats } from "../types";
 
 /**
  * Axios getter to make fetching responses easier
@@ -16,23 +16,33 @@ const api = axios.create({
  */
 export async function getAllPlayers(): Promise<PlayerPools> {
     const teams = await getTeams();
-    const hitters: Player[] = [];
-    const pitchers: Player[] = [];
+    const hitters: HitterPlayer[] = [];
+    const pitchers: PitcherPlayer[] = [];
+
+    // Type used for casting, generated from AI.
+    // Casting is needed since getAllPlayerStats can return either T = PitcherSeasonStats | HitterSeasonStats
+    // But we know what type it returns when it's true and false, so I just use this template to cast accordingly.
+    type StatsGroup<T extends SeasonStats> = {
+        projection: T;
+        lastYear: T;
+        threeYearAvg: T;
+    }
 
     for (const t of teams) {
         const roster = await getRoster(t.id, t.abbreviation);
         for (const p of roster) {
             // Special case for Ohtani
+
             if (p.position === "TWP") {
-                const hitterStats = await getAllPlayerStats(p.id, false);
-                const pitcherStats = await getAllPlayerStats(p.id, true);
+                const hitterStats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
+                const pitcherStats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
                 hitters.push({ ...p, positions: [p.position], suggestedValue: 0, stats: hitterStats });
                 pitchers.push({ ...p, positions: [p.position], suggestedValue: 0, stats: pitcherStats });
             } else if (p.position === "P") {
-                const stats = await getAllPlayerStats(p.id, true);
+                const stats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
                 pitchers.push({ ...p, positions: [p.position], suggestedValue: 0, stats });
             } else {
-                const stats = await getAllPlayerStats(p.id, false);
+                const stats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
                 hitters.push({ ...p, positions: [p.position], suggestedValue: 0, stats });
             }
         }
@@ -96,38 +106,68 @@ export async function getRoster(teamId: any, teamAbb : any, active : boolean = f
 /**
  * Returns the 3-year average stats, 2025 stats, and projected stats of a player
  */
-export async function getAllPlayerStats(playerId : number, isPitcher : boolean) :  Promise<{ projection: SeasonStats, lastYear: SeasonStats,threeYearAvg: SeasonStats }> {
+export async function getAllPlayerStats(playerId : number, isPitcher : boolean) :  Promise<
+    {
+        projection: PitcherSeasonStats;
+        lastYear: PitcherSeasonStats;
+        threeYearAvg: PitcherSeasonStats;
+    } | 
+    {
+        projection: HitterSeasonStats;
+        lastYear: HitterSeasonStats;
+        threeYearAvg: HitterSeasonStats;
+    }> {
     const group = isPitcher ? "pitching" : "hitting";
-    const key = group;
 
     const yearByYear = await getPlayerYBYStats(playerId, group);
 
     // Filter to only past three season's stats
     const threeYears = (yearByYear.filter((stat) => 
-        ["2023", "2024", "2025"].includes(stat.season)));
+        ["2023", "2024", "2025"].includes(stat.season)).map((stats) => mapStats(stats, group))) as PitcherStats[] | HitterStats[];
 
-    const lastYear = yearByYear.find((stat: any) => 
+    const lastYearStats = yearByYear.find((stat: any) => 
         stat.season === "2025")?.stat || null;
 
-    const threeYearAvg = averageStats(threeYears);
+    const threeYearAvgStats = averageStats(threeYears);
 
-    const projection = await getPlayerProjectedStats(playerId, group);
+    const projectionStats = await getPlayerProjectedStats(playerId, group);
 
-    return {
-        projection: {
-            seasons: [2026],
-            [key]:  projection
-        },
-        lastYear: {
-            seasons: [2025],
-            [key]: lastYear,
-        },
-        threeYearAvg: {
-            seasons: [2023, 2024, 2025],
-            [key]: threeYearAvg
-        },
-    };
+    if(isPitcher) {
+        return {
+            projection: {
+                seasons: [2026],
+                pitching:  projectionStats as PitcherStats
+            },
+            lastYear: {
+                seasons: [2025],
+                pitching: lastYearStats as PitcherStats,
+            },
+            threeYearAvg: {
+                seasons: [2023, 2024, 2025],
+                pitching: threeYearAvgStats as PitcherStats
+            },
+        }
+       
+    }
+    else {
+         return {
+            projection: {
+                seasons: [2026],
+                hitting:  projectionStats as HitterStats
+            },
+            lastYear: {
+                seasons: [2025],
+                hitting: lastYearStats as HitterStats,
+            },
+            threeYearAvg: {
+                seasons: [2023, 2024, 2025],
+                hitting: threeYearAvgStats as HitterStats,
+            },
+        }
+    }
+        
 }
+
 
 
 /**
@@ -152,18 +192,36 @@ export async function getPlayerProjectedStats(playerId : number, group: "hitting
  * @param stats array of stats for the given player
  * @returns average of all the stats
  */
-export function averageStats(stats : {season: string, stat: PitcherStats | HitterStats}[]) {
-    if(!stats.length || !stats[0]) return null;
+export function averageStats(stats : PitcherStats[] | HitterStats[]) : PitcherStats | HitterStats {
+    if (!stats[0] || stats.length === 0) return {} as PitcherStats | HitterStats;
 
-    const result : any = {}
-    const keys = Object.keys(stats[0].stat)
+    let result : any = {};
+    
+    // If a Pitcher
+    // AI used to geneerate the below code
+    const first = stats[0];
 
-    for (const key of keys) {
-        const nums = stats.map(s => (s.stat as any)[key] as number)
-        // Assign average to result[key], by reducing (i.e. summing up the current key's numbers) and dividing by the length
-        result[key] = nums.reduce((a, b) => (a + b), 0) / nums.length;
+    if ('era' in first) {
+        const pitcherStats = stats as PitcherStats[];
+        const keys = Object.keys(first) as (keyof PitcherStats)[];
+        const result = {} as PitcherStats;
+
+        for (const key of keys) {
+            const nums = pitcherStats.map(s => s[key]);
+            result[key] = nums.reduce((a, b) => a + b, 0) / nums.length;
+        }
+        return result;
+    } else {
+        const hitterStats = stats as HitterStats[];
+        const keys = Object.keys(first) as (keyof HitterStats)[];
+        const result = {} as HitterStats;
+
+        for (const key of keys) {
+            const nums = hitterStats.map(s => s[key]);
+            result[key] = nums.reduce((a, b) => a + b, 0) / nums.length;
+        }
+        return result;
     }
-    return result;
 }
 
 /**

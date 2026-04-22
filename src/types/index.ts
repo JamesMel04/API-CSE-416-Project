@@ -101,6 +101,12 @@ export interface SeasonStats {
     hitting?: HitterStats;
     pitching?: PitcherStats;
 }
+export interface HitterSeasonStats extends SeasonStats {
+    hitting: HitterStats;
+}
+export interface PitcherSeasonStats extends SeasonStats {
+    pitching: PitcherStats;
+}
 
 export interface Player {
     id: number;
@@ -127,6 +133,21 @@ export interface Player {
         projection: SeasonStats;
         lastYear: SeasonStats;
         threeYearAvg: SeasonStats;
+    };
+}
+export interface HitterPlayer extends Player {
+    stats: {
+        projection: HitterSeasonStats;
+        lastYear: HitterSeasonStats;
+        threeYearAvg: HitterSeasonStats;
+    };
+}
+
+export interface PitcherPlayer extends Player {
+    stats: {
+        projection: PitcherSeasonStats;
+        lastYear: PitcherSeasonStats;
+        threeYearAvg: PitcherSeasonStats;
     };
 }
 
@@ -205,6 +226,6 @@ export interface PlayerValuation {
 
 // ====================== Player Pool Type ======================================
 export interface PlayerPools {
-    hitters: Player[];
-    pitchers: Player[];
+    hitters: HitterPlayer[];
+    pitchers: PitcherPlayer[];
 }
