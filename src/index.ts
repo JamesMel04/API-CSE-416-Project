@@ -5,7 +5,7 @@ import fs from 'fs';
 import cors from "cors"
 import dotenv from 'dotenv';
 import { evaluatePlayers } from '@/services/evaluation';
-import { Player, ValuationRequest } from '@/types';
+import { Player, PlayerPools, ValuationRequest } from '@/types';
 import { mockValuationRequest } from "@/__tests__/fixtures/valuationRequest";
 import {Pool} from "pg";
 dotenv.config();
@@ -95,7 +95,8 @@ app.post('/players/valuations', (req, res) => {
     try {
         const request = req.body as ValuationRequest;
         //Calling our valuation service on the players
-        const valuations = evaluatePlayers(players, request);
+        // const valuations = evaluatePlayers(players, request);
+        const valuations = {} // Return empty for now.
         res.json(valuations);
     } catch (error) {
         res.status(400).json({
