@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import { evaluatePlayers } from '@/services/evaluation';
 import { Player, PlayerPools, ValuationRequest } from '@/types';
 import { mockValuationRequest } from "@/__tests__/fixtures/valuationRequest";
-import {Pool} from "pg";
+import playersPool from './services/db.pool';
 dotenv.config();
 
 const app = express();
@@ -15,25 +15,7 @@ const PORT = process.env.PORT ?? 5000;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 //const {Pool}=require("pg");
 const implemented=false
-let playersPool : any;
-// If you wanna test locally via downloading and running your own Postgres instance,
-// Just delete the env variable and run on port 5432
-if(process.env.DB_LINK) {
-  playersPool=new Pool({
-    connectionString: process.env.DB_LINK,
-    ssl:{rejectUnauthorized: false}
-  });
-}
-// Else it'll use your local instance
-else {
-  const playersPool=new Pool({
-    host: 'localhost',
-    port: 5432,
-    database: 'mlbtest',
-    user: 'postgres',
-    password: process.env.DB_PASSWORD,
-  });
-}
+
 const set="SET('C','1B','2B','3B','SS','CI','MI','OF1','OF2','OF3','OF4','OF5','UTIL','P1','P2','P3','P4','P5','P6','P7','P8','P9')"
 
 
