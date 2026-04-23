@@ -240,10 +240,17 @@ async function updateRefreshTimestamp() {
 }
 
 /** Checks if the API key exists or not */
-export async function checkAPIKey(apiKey: string) {
-    const rows = await pool.query(
-     `SELECT EXISTS (SELECT 1 FROM api_keys WHERE api_key=$1`,
+// Returns true or false
+//pool.query returns object with .rows
+export async function checkAPIKey(apiKey: string): Promise<boolean> {
+    const result = await pool.query(
+        `SELECT EXISTS (
+            SELECT 1 
+            FROM api_keys 
+            WHERE api_key=$1
+            AND revoked_at IS NULL
+        ) AS exists`,
      [apiKey]
     );
-    return rows[0].exists;
+    return result.rows[0]?.exists ?? false;
 }

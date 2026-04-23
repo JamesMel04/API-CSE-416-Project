@@ -1,68 +1,132 @@
-API URL: [https://api-cse-416-project-5a0b.onrender.com/](https://api-cse-416-project-5a0b.onrender.com)
+MLB API
 
-Draft Kit Backend: [https://draft-kit-backend-cse-416-project.onrender.com/](https://draft-kit-backend-cse-416-project.onrender.com)
+API URL: [https://api-cse-416-project-5a0b.onrender.com/](https://api-cse-416-project-5a0b.onrender.com/)
 
-Run whenever dependency files change (package.json or package-lock.json)
-```
+API Dashboard Frontend: TBD
+
+Draft Kit Backend: [https://draft-kit-backend-cse-416-project.onrender.com/](https://draft-kit-backend-cse-416-project.onrender.com/)
+
+## Overview
+
+This service exposes:
+
+- player pool data for licensed clients
+- valuation results for licensed clients
+- developer account auth for the API dashboard
+- developer API key generation and regeneration
+
+There are two different auth mechanisms in this project:
+
+1. JWT auth for developer dashboard routes
+2. API key auth for licensed client data routes
+
+In other words:
+
+- a developer logs into the dashboard with email/password
+- the dashboard receives a JWT
+- the developer uses the dashboard to generate an API key
+- a client backend such as Draft Kit stores that API key in its own env file
+- protected MLB API routes require that API key on every request
+
+## Project Setup
+
+Run whenever dependency files change (`package.json` or `package-lock.json`):
+
+```bash
 npm install
 ```
-Runs tsc: compiles src/*.ts to dist/*.js
 
-```
+Compile TypeScript to `dist/`:
+
+```bash
 npm run build
 ```
 
-Runs node dist/index.js: starts the server using the already-compiled JS
-```
+Start the already-compiled server:
+
+```bash
 npm start
 ```
 
-Runs ts-node src/index.ts: starts the server directly from TypeScript (no separate build)
-```
+Start the server directly from TypeScript:
+
+```bash
 npm run dev
 ```
 
-## API Endpoints
+## Environment Variables
 
-- Base URL: `http://localhost:5000`
-- `GET /health` : server status
-- `GET /players` : all players
-- `POST /players/valuations` : player valuations, body = `ValuationRequest`
-- `GET /players/valuations/test` : temporary test route
+Backend env vars:
 
-MLB Data Source Endpoints (where we got our data from)
+```env
+DB_LINK=postgresql://username:password@host:5432/database_name
+JWT_SECRET=your_long_random_secret
+```
 
+Optional local Postgres fallback:
 
-All Players: https://statsapi.mlb.com/api/v1/sports/1/players?season=2026
+```env
+DB_PASSWORD=your_local_postgres_password
+```
 
+Frontend env vars:
 
-Player Season Stat: https://statsapi.mlb.com/api/v1/people/{PlayerID}/stats?stats=season
+```env
+NEXT_PUBLIC_BACKEND_URL=https://api-cse-416-project-5a0b.onrender.com
+```
 
+## Auth Model
 
-Player Projected Stat:https://statsapi.mlb.com/api/v1/people/{PlayerID}/stats?stats=projected
+### Developer dashboard auth
 
----
+These routes use JWT auth:
 
-## API Service (Detailed Docs)
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /api-keys`
+- `POST /api-keys`
 
-This service exposes player data and valuation endpoints that can be consumed by Draft Kit or other authorized clients.
+After a successful login, the backend returns a JWT. The frontend sends it back in:
 
-Base URLs:
+```txt
+Authorization: Bearer <jwt_token>
+```
 
-- Local: `http://localhost:5000`
-- Deployed: `https://api-cse-416-project-5a0b.onrender.com`
+### Licensed client auth
 
-All requests and responses use JSON except `GET /`, which returns HTML.
+These routes use API key auth:
+
+- `GET /players`
+- `POST /players/valuations`
+
+Licensed clients must send:
+
+```txt
+mlb-api-key: <api_key>
+```
+
+Revoked keys are rejected.
 
 ## Endpoint Summary
 
-| Method | Endpoint | Description |
-| ------ | -------- | ----------- |
-| GET | `/` | Serves `public/index.html` status page |
-| GET | `/health` | Lightweight machine-readable health check |
-| GET | `/players` | Returns full player dataset from `data/players.json` |
-| POST | `/players/valuations` | Returns player valuation list using request league settings + draft state |
-| GET | `/players/valuations/test` | Returns valuation output using a built-in API mock request fixture |
+Base URL:
+
+- `https://api-cse-416-project-5a0b.onrender.com`
+
+All requests and responses use JSON except `GET /`, which returns HTML.
+
+
+| Method | Endpoint              | Auth    | Description                                                              |
+| ------ | --------------------- | ------- | ------------------------------------------------------------------------ |
+| GET    | `/`                   | none    | Serves `public/index.html` status page                                   |
+| GET    | `/health`             | none    | Lightweight machine-readable health check                                |
+| POST   | `/auth/register`      | none    | Create a developer account                                               |
+| POST   | `/auth/login`         | none    | Log in a developer account and receive a JWT                             |
+| GET    | `/api-keys`           | JWT     | Get the current active API key for the logged-in developer               |
+| POST   | `/api-keys`           | JWT     | Revoke the current active API key and issue a new one                    |
+| GET    | `/players`            | API key | Return the current hitter and pitcher player pools                       |
+| POST   | `/players/valuations` | API key | Return valuation output for the supplied league settings and draft state |
+
 
 ## Detailed Routes
 
@@ -73,17 +137,17 @@ Returns the static status page HTML.
 Example request:
 
 ```txt
-GET http://localhost:5000/
+GET https://api-cse-416-project-5a0b.onrender.com/
 ```
 
 ### GET `/health`
 
-Returns server health status for uptime monitors and probes.
+Returns server health status for probes and uptime checks.
 
 Example request:
 
 ```txt
-GET http://localhost:5000/health
+GET https://api-cse-416-project-5a0b.onrender.com/health
 ```
 
 Example response:
@@ -92,94 +156,265 @@ Example response:
 { "status": "ok" }
 ```
 
-### GET `/players`
+### POST `/auth/register`
 
-Returns all players currently loaded into memory from `data/players.json`.
+Creates a developer account for the API dashboard.
+
+Request body:
+
+```json
+{
+  "email": "dev@example.com",
+  "password": "super-secret-password"
+}
+```
+
+Example response:
+
+```json
+{
+  "message": "Account created successfully",
+  "user": {
+    "id": 1,
+    "email": "dev@example.com"
+  }
+}
+```
+
+Possible errors:
+
+- `400` missing email or password
+- `409` account already exists
+
+### POST `/auth/login`
+
+Logs in a developer account and returns a JWT for dashboard requests.
+
+Request body:
+
+```json
+{
+  "email": "dev@example.com",
+  "password": "super-secret-password"
+}
+```
+
+Example response:
+
+```json
+{
+  "message": "Login successful",
+  "token": "<jwt_token>",
+  "user": {
+    "id": 1,
+    "email": "dev@example.com"
+  }
+}
+```
+
+Possible errors:
+
+- `400` missing email or password
+- `401` invalid email or password
+
+### GET `/api-keys`
+
+Returns the currently active API key for the logged-in developer.
+
+Required header:
+
+```txt
+Authorization: Bearer <jwt_token>
+```
 
 Example request:
 
 ```txt
-GET http://localhost:5000/players
+GET https://api-cse-416-project-5a0b.onrender.com/api-keys
+Authorization: Bearer <jwt_token>
+```
+
+Example response:
+
+```json
+{
+  "apiKey": "api_44d48b6f616629ba81bab34d0710e3d8..."
+}
+```
+
+If the developer has no active key yet:
+
+```json
+{
+  "apiKey": ""
+}
+```
+
+### POST `/api-keys`
+
+Revokes the currently active API key for the logged-in developer, if one exists, and creates a new active key.
+
+Required header:
+
+```txt
+Authorization: Bearer <jwt_token>
+```
+
+Example request:
+
+```txt
+POST https://api-cse-416-project-5a0b.onrender.com/api-keys
+Authorization: Bearer <jwt_token>
+```
+
+Example response:
+
+```json
+{
+  "apiKey": "api_44d48b6f616629ba81bab34d0710e3d8...",
+  "message": "API key generated successfully"
+}
+```
+
+Notes:
+
+- old keys are not deleted; they are marked revoked
+- only keys with `revoked_at IS NULL` are considered active
+
+### GET `/players`
+
+Returns the current player pools from the database.
+
+Required header:
+
+```txt
+mlb-api-key: <api_key>
+```
+
+Example request:
+
+```txt
+GET https://api-cse-416-project-5a0b.onrender.com/players
+mlb-api-key: <api_key>
 ```
 
 Example response shape:
 
 ```json
-[
-	{
-		"id": "shohei-ohtani-lad",
-		"name": "Shohei Ohtani",
-		"team": "LAD",
-		"positions": ["U", "P"],
-		"suggestedValue": 34,
-		"stats": {
-			"projection": {
-				"seasons": [2026],
-				"hitter": { "r": 123, "hr": 42, "obp": 0.398, "slg": 0.613 }
-			},
-			"lastYear": {
-				"seasons": [2025],
-				"hitter": { "r": 146, "hr": 55, "obp": 0.392, "slg": 0.622 }
-			},
-			"threeYearAvg": {
-				"seasons": [2023, 2024, 2025],
-				"hitter": { "r": 127, "hr": 51, "obp": 0.397, "slg": 0.64 }
-			}
-		}
-	}
-]
+{
+  "hitters": [
+    {
+      "id": 660271,
+      "name": "Shohei Ohtani",
+      "team": "LAD",
+      "teamId": 119,
+      "position": "TWP",
+      "positions": ["TWP"],
+      "age": 31,
+      "injuryStatus": "A",
+      "suggestedValue": 34,
+      "stats": {
+        "projection": {
+          "seasons": [2026],
+          "hitting": {
+            "r": 123,
+            "hr": 42,
+            "obp": 0.398,
+            "slg": 0.613
+          }
+        },
+        "lastYear": {
+          "seasons": [2025],
+          "hitting": {
+            "r": 146,
+            "hr": 55,
+            "obp": 0.392,
+            "slg": 0.622
+          }
+        },
+        "threeYearAvg": {
+          "seasons": [2023, 2024, 2025],
+          "hitting": {
+            "r": 127,
+            "hr": 51,
+            "obp": 0.397,
+            "slg": 0.64
+          }
+        }
+      }
+    }
+  ],
+  "pitchers": []
+}
 ```
+
+Possible errors:
+
+- `401` missing or invalid API key
 
 ### POST `/players/valuations`
 
-Computes valuations for all undrafted players and returns an array of:
+Computes valuations for all undrafted players based on league settings and current draft state.
 
-- `id`
-- `normalizedValue` (0 to 1 scale)
-- `auctionPrice` (minimum 1)
+Required header:
+
+```txt
+mlb-api-key: <api_key>
+```
 
 Request body type: `ValuationRequest`
 
 ```json
 {
-	"leagueSettings": {
-		"budget": 260,
-		"teamCount": 12,
-		"rosterSlots": {
-			"C": 2,
-			"1B": 1,
-			"2B": 1,
-			"3B": 1,
-			"SS": 1,
-			"CI": 1,
-			"MI": 1,
-			"OF": 5,
-			"U": 1,
-			"P": 9
-		}
-	},
-	"draftState": {
-		"rosterAssignments": [
-			{
-				"teamId": "team-1",
-				"playerId": "francisco-lindor-nym",
-				"assignedPosition": "U"
-			},
-			{
-				"teamId": "team-2",
-				"playerId": "bobby-witt-jr-kc",
-				"assignedPosition": "SS"
-			}
-		]
-	}
+  "leagueSettings": {
+    "budget": 260,
+    "teamCount": 12,
+    "rosterSlots": {
+      "C": 2,
+      "1B": 1,
+      "2B": 1,
+      "3B": 1,
+      "SS": 1,
+      "CI": 1,
+      "MI": 1,
+      "OF": 5,
+      "U": 1,
+      "P": 9
+    }
+  },
+  "draftState": {
+    "rosterAssignments": [
+      {
+        "teamId": "team-1",
+        "playerId": 660271,
+        "assignedPosition": "U"
+      }
+    ]
+  }
 }
 ```
+
+Important request details:
+
+- `playerId` is a number, not a string
+- `assignedPosition` must be one of:
+  - `C`
+  - `1B`
+  - `2B`
+  - `3B`
+  - `SS`
+  - `CI`
+  - `MI`
+  - `OF`
+  - `U`
+  - `P`
 
 Example request:
 
 ```txt
-POST http://localhost:5000/players/valuations
+POST https://api-cse-416-project-5a0b.onrender.com/players/valuations
 Content-Type: application/json
+mlb-api-key: <api_key>
 
 {
   "leagueSettings": {
@@ -208,61 +443,88 @@ Example response:
 
 ```json
 [
-	{
-		"id": "aaron-judge-nyy",
-		"normalizedValue": 0.9827,
-		"auctionPrice": 18.36
-	},
-	{
-		"id": "shohei-ohtani-lad",
-		"normalizedValue": 0.9661,
-		"auctionPrice": 17.9
-	}
+  {
+    "id": 592450,
+    "normalizedValue": 0.9827,
+    "auctionPrice": 18.36
+  },
+  {
+    "id": 660271,
+    "normalizedValue": 0.9661,
+    "auctionPrice": 17.9
+  }
 ]
 ```
 
-Error response example (`400`):
+Possible errors:
 
-```json
-{ "error": "Failed to evaluate players" }
+- `400` invalid valuation request payload or evaluation failure
+- `401` missing or invalid API key
+
+## Client Integration
+
+Client applications should call the protected data routes from their backend, not from a public browser client.
+
+Example:
+
+```ts
+await fetch("https://api-cse-416-project-5a0b.onrender.com/players", {
+  headers: {
+    "mlb-api-key": process.env.MLB_API_KEY!,
+  },
+});
 ```
 
-### GET `/players/valuations/test`
+Recommended flow:
 
-Runs valuations using the API mock fixture request from tests.
+1. developer logs into the API dashboard
+2. developer generates an API key
+3. client backend stores the API key in env
+4. client backend sends `mlb-api-key` on every protected request
 
-Example request:
+## Database
 
-```txt
-GET http://localhost:5000/players/valuations/test
-```
+This project currently uses these database tables:
 
-Response shape is the same as `POST /players/valuations`.
+- `players`: global player fields such as ID, name, age, injury status, and suggested value
+- `hitter_stats`: hitter projection, last-year, and three-year-average stats
+- `pitcher_stats`: pitcher projection, last-year, and three-year-average stats
+- `last_refresh`: singleton refresh timestamp table used to avoid unnecessary refreshes
+- `api_users`: developer dashboard accounts
+- `api_keys`: generated API keys, including revoked historical keys
 
-## Notes
+The player stat tables are linked back to `players` by `mlb_id`. The API serves hitter and pitcher pools by joining those tables and rebuilding player objects.
 
-- Player data is loaded from `data/players.json` at API startup and kept in memory.
-- `POST /players/valuations` excludes drafted players listed in `draftState.rosterAssignments`.
-- `GET /health` is best for automated checks; `GET /` is best for human-readable status.
+The `last_refresh` table holds one row with `id = 1` and the most recent `refreshed_at` timestamp.
+
+The `api_keys` table keeps old keys for audit/history purposes. Revoked keys are marked with a non-null `revoked_at` timestamp and are rejected by the licensed client middleware.
+
+## MLB Source Data
+
+These are the MLB Stats API endpoints used as source data:
+
+All players:
+
+[https://statsapi.mlb.com/api/v1/sports/1/players?season=2026](https://statsapi.mlb.com/api/v1/sports/1/players?season=2026)
+
+Player season stats:
+
+[https://statsapi.mlb.com/api/v1/people/{PlayerID}/stats?stats=season](https://statsapi.mlb.com/api/v1/people/{PlayerID}/stats?stats=season)
+
+Player projected stats:
+
+[https://statsapi.mlb.com/api/v1/people/{PlayerID}/stats?stats=projected](https://statsapi.mlb.com/api/v1/people/{PlayerID}/stats?stats=projected)
 
 ## Common Status Codes
 
-| Code | Meaning |
-| ---- | ------- |
-| 200 | Success |
-| 400 | Invalid valuation request payload or processing error |
+
+| Code | Meaning                                           |
+| ---- | ------------------------------------------------- |
+| 200  | Success                                           |
+| 201  | Resource created successfully                     |
+| 400  | Invalid request payload or missing required field |
+| 401  | Missing or invalid JWT/API key                    |
+| 409  | Account already exists                            |
+| 500  | Internal server error                             |
 
 
-# Database
-The database will have three different tables:
-**Players table**: this will contain global player data like ID, injuryStatus, etc.
-**Hitter_stats**: This will contain specific hitter_stats (projection, last year, and three year average).
-**Pitcher_stats**: Same as hitter_stats table, but for pitchers.
-
-Both `hitter_stats` and `pitcher_stats` will be linked to the `players` table with an ID. Then, a JOIN will be utilized to return the players along with their stats, separated into hitter and pitcher pools.
-
-For ensuring the DB isn't refreshed with each request, a singleton pattern is used with a dedicated `last_refresh` table. This table will simply have one row with id=1, that contains the last refresh time under `refreshed_at`.
-| 		last_refresh      			|
-|  id  | 		refreshed_at 		|
-| ---- | 		------------		|
-|  1   | 2026-01-01T12:36:43.034Z 	|
