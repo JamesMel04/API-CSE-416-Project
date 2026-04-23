@@ -5,7 +5,9 @@ import fs from 'fs';
 import cors from "cors"
 import dotenv from 'dotenv';
 import { Player, PlayerPools, ValuationRequest } from '@/types';
-import {Pool} from "pg";
+import { mockValuationRequest } from "@/__tests__/fixtures/valuationRequest";
+import dbPool from './services/db.pool';
+import { getCachedPlayers } from './services/db.service';
 dotenv.config();
 import crypto from "crypto";
 import { hashPassword, verifyPassword } from "@/utils/password";
@@ -79,25 +81,7 @@ const PORT = process.env.PORT ?? 5000;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 //const {Pool}=require("pg");
 const implemented=false
-let dbPool : any;
-// If you wanna test locally via downloading and running your own Postgres instance,
-// Just delete the env variable and run on port 5432
-if(process.env.DB_LINK) {
-  dbPool=new Pool({
-    connectionString: process.env.DB_LINK,
-    ssl:{rejectUnauthorized: false}
-  });
-}
-// Else it'll use your local instance
-else {
-  dbPool = new Pool({
-    host: 'localhost',
-    port: 5432,
-    database: 'mlbtest',
-    user: 'postgres',
-    password: process.env.DB_PASSWORD,
-  });
-}
+
 const set="SET('C','1B','2B','3B','SS','CI','MI','OF1','OF2','OF3','OF4','OF5','UTIL','P1','P2','P3','P4','P5','P6','P7','P8','P9')"
 
 
@@ -127,26 +111,9 @@ app.get('/health', (req, res) => {
 
 // Handle players requests
 app.get('/players', async (req, res) => {
-  //when implementing database querying here check for code 42P01 to create table
-  if(!implemented){
-    res.json(players);
-  }else{
-    try{
-      const players=await dbPool.query("SELECT * FROM players");
-      res.json(players.rows);
-    }catch(err:any){
-      if(err.code !="42P01"){
-        console.log(err);
-        res.json(err);
-      }
-      else{
-        const players=await dbPool.query("CREATE TABLE players (id varchar(70) PRIMARY KEY, name varchar(50) NOT NULL, team char(3) NOT NULL, position varchar(4)[] NOT NULL, stats text NOT NULL);");
-        //temporary output, after implementation of routes fill in the player data and then json that result
-        res.json(players);
-      }
-    }
-  }
-  
+  // Grab cached hitters, pitchers
+  let {hitters, pitchers} = await getCachedPlayers();
+  res.json({hitters, pitchers});
 })
 
 //Starts server on this port
