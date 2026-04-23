@@ -1,3 +1,7 @@
+// ========= Type Aliases ==========
+export type PlayerID = number;
+export type TeamName = string; // User made team name
+
 // ========== Player Data types ==========
 export interface HitterStats {
     ab: number; // at bats, how many times they appeared to bat
@@ -93,8 +97,8 @@ export type HitterCategorySummary = Record<HitterScoringCategory, number>;
 export type PitcherCategorySummary = Record<PitcherScoringCategory, number>;
 
 // {PlayerID, SetofData}
-export type PlayerHitterCategorySummaries = Record<string, HitterCategorySummary>;
-export type PlayerPitcherCategorySummaries = Record<string, PitcherCategorySummary>;
+export type PlayerHitterCategorySummaries = Record<PlayerID, HitterCategorySummary>;
+export type PlayerPitcherCategorySummaries = Record<PlayerID, PitcherCategorySummary>;
 
 export interface SeasonStats {
     seasons: number[];
@@ -109,7 +113,7 @@ export interface PitcherSeasonStats extends SeasonStats {
 }
 
 export interface Player {
-    id: number;
+    id: PlayerID;
     name: string;
     team: string;
     teamId: number;
@@ -201,25 +205,26 @@ export type RosterSlotCounts = Record<RosterSlot, number>;
 // For each assigned player
 export interface DraftedRosterAssignment {
     teamId: string;
-    playerId: number;
+    playerId: PlayerID;
     assignedPosition: RosterSlot;
 }
 
-/** 
- * Contain the fantasy roster slot each drafted player is currently filling.
-*/
-export interface DraftState {
-    rosterAssignments: DraftedRosterAssignment[];
+export type RosterData = {
+  roster: Partial<Record<RosterSlot, PlayerID>>;
+};
+
+export interface LeagueState {
+    teams: Record<TeamName, RosterData>;
 }
 
 export interface ValuationRequest {
     leagueSettings: LeagueSettings;
-    draftState: DraftState;
+    leagueState: LeagueState;
 }
 
 // ==================== Valuation Response (returned by API) ====================
 export interface PlayerValuation {
-    id: number;
+    id: PlayerID;
     normalizedValue: number;
     auctionPrice: number;
 }
