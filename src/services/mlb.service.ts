@@ -195,8 +195,7 @@ export async function getPlayerProjectedStats(playerId : number, group: "hitting
 /** Gets age of player */
 export async function getPlayerAge(playerId : number) {
     const res : any = await api.get(`/people/${playerId}`);
-    console.log(res);
-    return res.data.currentAge;
+    return res.data.people[0].currentAge;
 }
 
 /**
@@ -242,44 +241,91 @@ export function averageStats(stats : PitcherStats[] | HitterStats[]) : PitcherSt
  * Maps the stats of the player to match the hitterStats or pitcherStats type
  */
 export function mapStats(stats: any, group : "hitting" | "pitching") : HitterStats | PitcherStats {
+    // Fallback in case the given stats is empty
+    if (!stats) {
+        if(group == "hitting") {
+            return {
+                ab: 0, 
+                r:  0, 
+                h: 0,
+                "1b": 0,
+                "2b": 0, 
+                "3b": 0,
+                hr: 0,
+                rbi: 0, 
+                bb: 0, 
+                k: 0,
+                sb: 0, 
+                cs: 0,
+                avg: 0, 
+                obp: 0, 
+                slg: 0,
+                fpts: 0, // to be calculated later
+            }
+        }
+        else {
+            return {
+                gp: 0, 
+                era: 0, 
+                gs: 0,
+                w: 0, 
+                l: 0, 
+                sho: 0,
+                sv: 0,
+                ip: 0,
+                h: 0,
+                er: 0,
+                r: 0,
+                hr: 0,
+                hld: 0,
+                hb: 0,
+                bb: 0, 
+                so: 0, 
+                whip: 0,
+                avg: 0,
+                fpts: 0,
+            }
+        }
+    }
     if (group == "hitting") {
         return {
-            ab: stats.atBats, 
-            r: stats.runs, 
-            h: stats.hits,
+            ab: stats.atBats ?? 0, 
+            r: stats.runs ?? 0, 
+            h: stats.hits ?? 0,
             "1b": stats.hits - stats.doubles - stats.triples - stats.homeRuns,
-            "2b": stats.doubles, 
-            "3b": stats.triples, hr: stats.homeRuns,
-            rbi: stats.rbi, 
-            bb: stats.baseOnBalls, 
-            k: stats.strikeOuts,
-            sb: stats.stolenBases, 
-            cs: stats.caughtStealing,
-            avg: parseFloat(stats.avg), 
-            obp: parseFloat(stats.obp), 
-            slg: parseFloat(stats.slg),
+            "2b": stats.doubles ?? 0, 
+            "3b": stats.triples ?? 0, 
+            hr: stats.homeRuns ?? 0,
+            rbi: stats.rbi ?? 0, 
+            bb: stats.baseOnBalls ?? 0, 
+            k: stats.strikeOuts ?? 0,
+            sb: stats.stolenBases ?? 0, 
+            cs: stats.caughtStealing ?? 0,
+            avg: parseFloat(stats.avg) || 0, 
+            obp: parseFloat(stats.obp) || 0, 
+            slg: parseFloat(stats.slg) || 0,
             fpts: 0, // to be calculated later
         }
     }
     else {
         return {
-            gp: stats.gamesPlayed, 
-            era: parseFloat(stats.era), 
-            gs: stats.gamesStarted,
-            w: stats.wins, 
-            l: stats.losses, 
-            sho: stats.shutouts,
-            sv: stats.saves,
-            ip: parseFloat(stats.inningsPitched),
-            h: stats.hits,
-            er: stats.earnedRuns,
-            r: stats.runsScoredPer9,
-            hr: stats.homeRunsPer9,
-            hld: stats.holds,
-            hb: stats.hitBatsmen,
-            bb: stats.baseOnBalls, 
-            so: stats.strikeOuts, 
-            whip: parseFloat(stats.whip),
+            gp: stats.gamesPlayed ?? 0, 
+            era: parseFloat(stats.era) ?? 0, 
+            gs: stats.gamesStarted ?? 0,
+            w: stats.wins ?? 0, 
+            l: stats.losses ?? 0, 
+            sho: stats.shutouts ?? 0,
+            sv: stats.saves ?? 0,
+            ip: parseFloat(stats.inningsPitched) || 0,
+            h: stats.hits ?? 0,
+            er: stats.earnedRuns ?? 0,
+            r: stats.runsScoredPer9 ?? 0,
+            hr: stats.homeRunsPer9 ?? 0,
+            hld: stats.holds ?? 0,
+            hb: stats.hitBatsmen ?? 0,
+            bb: stats.baseOnBalls ?? 0, 
+            so: stats.strikeOuts ?? 0, 
+            whip: parseFloat(stats.whip) || 0,
             avg: 0,
             fpts: 0,
         }
