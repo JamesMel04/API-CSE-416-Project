@@ -8,6 +8,7 @@ import { evaluatePlayers } from '@/services/evaluation';
 import { Player, PlayerPools, ValuationRequest } from '@/types';
 import { mockValuationRequest } from "@/__tests__/fixtures/valuationRequest";
 import playersPool from './services/db.pool';
+import { getCachedPlayers } from './services/db.service';
 dotenv.config();
 
 const app = express();
@@ -45,26 +46,9 @@ app.get('/health', (req, res) => {
 
 // Handle players requests
 app.get('/players', async (req, res) => {
-  //when implementing database querying here check for code 42P01 to create table
-  if(!implemented){
-    res.json(players);
-  }else{
-    try{
-      const players=await playersPool.query("SELECT * FROM players");
-      res.json(players.rows);
-    }catch(err:any){
-      if(err.code !="42P01"){
-        console.log(err);
-        res.json(err);
-      }
-      else{
-        const players=await playersPool.query("CREATE TABLE players (id varchar(70) PRIMARY KEY, name varchar(50) NOT NULL, team char(3) NOT NULL, position varchar(4)[] NOT NULL, stats text NOT NULL);");
-        //temporary output, after implementation of routes fill in the player data and then json that result
-        res.json(players);
-      }
-    }
-  }
-  
+  // Grab cached hitters, pitchers
+  let {hitters, pitchers} = await getCachedPlayers();
+  res.json({hitters, pitchers});
 })
 
 //Starts server on this port
