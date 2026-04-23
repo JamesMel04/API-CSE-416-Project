@@ -7,12 +7,13 @@ import dotenv from 'dotenv';
 import { Player, PlayerPools, ValuationRequest } from '@/types';
 import { mockValuationRequest } from "@/__tests__/fixtures/valuationRequest";
 import dbPool from './services/db.pool';
-import { getCachedPlayers } from './services/db.service';
+import { checkAPIKey, getCachedPlayers } from './services/db.service';
 dotenv.config();
 import crypto from "crypto";
 import { hashPassword, verifyPassword } from "@/utils/password";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
+import { evaluatePlayers } from './services/evaluation';
 
 
 
@@ -93,7 +94,6 @@ const playersPath = path.join(__dirname, '..', 'data', 'players.json');
 const playersJsonString = fs.readFileSync(playersPath, 'utf-8');
 // Create an in-memory json object that holds the player data 
 // *Note*: The approach used here is to have the data stored in an object once the server runs, this allows faster return on request but may contain stale data if data changes, it could be good for the MVP, as we don't have real DB set up yet.  
-const players: Player[] = JSON.parse(playersJsonString);
 
 app.use(cors());
 // Reads JSON puts in req.body
@@ -109,25 +109,31 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
 
+const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+  const apiKey = req.headers["mlb-api-key"];
+
+  if (!apiKey || Array.isArray(apiKey) || !await checkAPIKey(apiKey)) {
+    return res.status(401).send('Unauthorized, invalid API Key');
+  }
+
+  next();
+};
+
+
 // Handle players requests
-app.get('/players', async (req, res) => {
+app.get('/players', authenticate, async (req, res) => {
   // Grab cached hitters, pitchers
   let {hitters, pitchers} = await getCachedPlayers();
   res.json({hitters, pitchers});
 })
 
-//Starts server on this port
-app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-})
 
 // User request with ValuationRequest: (LeagueSettings, DraftState)
-app.post('/players/valuations', (req, res) => {
+app.post('/players/valuations', authenticate, async (req, res) => {
     try {
         const request = req.body as ValuationRequest;
         //Calling our valuation service on the players
-        // const valuations = evaluatePlayers(players, request);
-        const valuations = {} // Return empty for now.
+        const valuations = await evaluatePlayers(request);
         res.json(valuations);
     } catch (error) {
         res.status(400).json({
@@ -314,3 +320,9 @@ app.get('/players/data/test3',async (req,res)=>{
     res.json(err);
   }
 });
+
+
+//Starts server on this port
+app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+})

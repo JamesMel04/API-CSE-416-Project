@@ -238,3 +238,12 @@ async function updateRefreshTimestamp() {
          ON CONFLICT (id) DO UPDATE SET refreshed_at = NOW()`
     );
 }
+
+/** Checks if the API key exists or not */
+export async function checkAPIKey(apiKey: string) {
+    const rows = await pool.query(
+     `SELECT EXISTS (SELECT 1 FROM api_keys WHERE api_key=$1`,
+     [apiKey]
+    );
+    return rows[0].exists;
+}
