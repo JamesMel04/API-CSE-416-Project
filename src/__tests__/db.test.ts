@@ -69,7 +69,7 @@ describe("insertHitter", () => {
         expect(stats.rows.map((r: any) => r.stat_type).sort()).toEqual(['lastYear', 'projection', 'threeYearAvg']);
 
         const proj = stats.rows.find((r: any) => r.stat_type === 'projection');
-        expect(proj.hr).toBe(35);
+        expect(parseInt(proj.hr)).toBe(35);
         expect(parseFloat(proj.avg)).toBeCloseTo(0.3);
     });
 });
