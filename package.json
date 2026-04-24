@@ -11,7 +11,10 @@
     "start": "node dist/index.js",
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "test:ci": "vitest run --exclude src/__tests__/db.test.ts",
+    "test:db": "vitest run src/__tests__/db.test.ts"
+
   },
   "repository": {
     "type": "git",

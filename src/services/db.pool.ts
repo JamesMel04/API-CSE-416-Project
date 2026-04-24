@@ -13,7 +13,7 @@ if(process.env.DB_LINK) {
 // If you want to test locally via downloading and running your own Postgres instance,
 // Just delete the env variable and run on port 5432
 else {
-  const playersPool=new Pool({
+  playersPool=new Pool({
     host: 'localhost',
     port: 5432,
     database: 'mlbtest',
