@@ -128,7 +128,7 @@ app.get('/players', authenticate, async (req, res) => {
 })
 
 
-// User request with ValuationRequest: (LeagueSettings, DraftState)
+// User request with ValuationRequest: (LeagueSettings, LeagueState) -> PlayerValuation[]
 app.post('/players/valuations', authenticate, async (req, res) => {
     try {
         const request = req.body as ValuationRequest;
