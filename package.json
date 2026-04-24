@@ -2,6 +2,7 @@
   "name": "mlb_api",
   "version": "1.0.0",
   "main": "index.js",
+  "type":"module",
   "directories": {
     "doc": "docs"
   },

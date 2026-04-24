@@ -9,38 +9,41 @@ import { afterAll, describe, expect, test } from "vitest";
 /** Testing locally for database changes */
 
 async function testDB() {
-  try {
-      const result = await playersPool.query('SELECT NOW()');
-        console.log('Connected! Server time:', result.rows[0].now);
+    let local=false
+    if(local){
+        try {
+            const result = await playersPool.query('SELECT NOW()');
+                console.log('Connected! Server time:', result.rows[0].now);
 
-        // Test creating a table
-        await playersPool.query(`
-            CREATE TABLE IF NOT EXISTS test_players (
-                id SERIAL PRIMARY KEY,
-                name TEXT,
-                position TEXT
-            )
-        `);
-        console.log('Table created');
+                // Test creating a table
+                await playersPool.query(`
+                    CREATE TABLE IF NOT EXISTS test_players (
+                        id SERIAL PRIMARY KEY,
+                        name TEXT,
+                        position TEXT
+                    )
+                `);
+                console.log('Table created');
 
-        // Test inserting
-        await playersPool.query(
-            'INSERT INTO test_players (name, position) VALUES ($1, $2)',
-            ['Shohei Ohtani', 'TWP']
-        );
-        console.log('Inserted');
+                // Test inserting
+                await playersPool.query(
+                    'INSERT INTO test_players (name, position) VALUES ($1, $2)',
+                    ['Shohei Ohtani', 'TWP']
+                );
+                console.log('Inserted');
 
-        // Test reading
-        const players = await playersPool.query('SELECT * FROM test_players');
-        console.log('Players:', players.rows);
+                // Test reading
+                const players = await playersPool.query('SELECT * FROM test_players');
+                console.log('Players:', players.rows);
 
-        // Clean up
-        // await playersPool.query('DROP TABLE test_players');
-        console.log('Cleaned up');
-  }
-  catch(err) {
-    console.error("TestDB Error", err);
-  }
+                // Clean up
+                // await playersPool.query('DROP TABLE test_players');
+                console.log('Cleaned up');
+        }catch(err) {
+            console.error("TestDB Error", err);
+        }
+    }
+  
 }
 
 /** Testing getAllPlayers integration with Database **/

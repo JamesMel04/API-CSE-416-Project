@@ -8,6 +8,7 @@ const REFRESH_TIME = 6;
 // Service functions to implement with database
 const playersPool = new Pool({
     connectionString: process.env.DB_LINK,
+    ssl:{rejectUnauthorized:false}
 });
 
 // Local players pool, uncomment when you want to run tests.

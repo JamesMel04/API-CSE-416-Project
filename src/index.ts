@@ -11,7 +11,8 @@ import crypto from "crypto";
 import { hashPassword, verifyPassword } from "@/utils/password";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-
+import { getAllPlayers } from '@/services/mlb.service';
+import { playersPool } from './services/db.service';
 
 
 const app = express();
@@ -139,10 +140,32 @@ app.get('/players', async (req, res) => {
         console.log(err);
         res.json(err);
       }
+    //   stats: {
+    //     projection: HitterSeasonStats;
+    //     lastYear: HitterSeasonStats;
+    //     threeYearAvg: HitterSeasonStats;
+    // };
+    // id: number;
+    // name: string;
+    // team: string;
+    // teamId: number;
+    // position: string;
+    // age: number;
+    // positions: PlayerPosition[];
+    // suggestedValue: number;
+    // injuryStatus: string;
       else{
-        const players=await dbPool.query("CREATE TABLE players (id varchar(70) PRIMARY KEY, name varchar(50) NOT NULL, team char(3) NOT NULL, position varchar(4)[] NOT NULL, stats text NOT NULL);");
+        const table=await dbPool.query("CREATE TABLE players (id varchar(70) PRIMARY KEY, name varchar(50) NOT NULL, team char(3) NOT NULL, position varchar(4)[] NOT NULL, stats text NOT NULL);");
         //temporary output, after implementation of routes fill in the player data and then json that result
+        const players=await getAllPlayers();
         res.json(players);
+        //INCOMPLETE
+        for(let i=0;i<players.hitters.length;i++){
+          let str=`INSERT INTO players VALUES ('${players.hitters[i]?.id}', '${players.hitters[i]?.name}', 
+          '${players.hitters[i]?.team}', '${players.hitters[i]?.teamId}', '${players.hitters[i]?.position}', 
+          '${players.hitters[i]?.age}', '${players.hitters[i]?.injuryStatus}, '0')`
+        }
+        //INCOMPLETE
       }
     }
   }
