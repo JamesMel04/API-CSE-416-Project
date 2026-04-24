@@ -1,8 +1,8 @@
 import { Pool } from "pg";
-
+import dotenv from "dotenv";
+dotenv.config();
 /** Singleton pool to import in all places */
-let playersPool : any;
-
+let playersPool :any;
 if(process.env.DB_LINK) {
   playersPool=new Pool({
     connectionString: process.env.DB_LINK,

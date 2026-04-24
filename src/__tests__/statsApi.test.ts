@@ -299,10 +299,10 @@ describe("mapStats", () => {
 })
 
 describe("getPlayerAge", () => {
-    const testPlayer = {data: {currentAge: 31} };
+    const testPlayer = {data: {people:[{currentAge: 31}] }};
     test("returns correct age", async () => { 
         mockGet.mockResolvedValueOnce(testPlayer);
-        const result = await getPlayerAge(1234);
+        const result = await getPlayerAge(123);
         expect(result).toEqual(31);
     })
 })
