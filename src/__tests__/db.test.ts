@@ -1,6 +1,7 @@
 import { Pool } from "pg";
 import { mockHitter } from "./fixtures/db";
-import { insertHitter, insertPitcher, playersPool } from "../services/db.service";
+import { insertHitter, insertPitcher } from "../services/db.service";
+import playersPool from "../services/db.pool";
 import { afterAll, describe, expect, test } from "vitest";
 
 /**
@@ -65,9 +66,9 @@ describe("insertHitter", () => {
 
         const stats = await playersPool.query('SELECT * FROM hitter_stats WHERE mlb_id = $1 ORDER BY stat_type', [660271]);
         expect(stats.rows).toHaveLength(3);
-        expect(stats.rows.map(r => r.stat_type).sort()).toEqual(['lastYear', 'projection', 'threeYearAvg']);
+        expect(stats.rows.map((r: any) => r.stat_type).sort()).toEqual(['lastYear', 'projection', 'threeYearAvg']);
 
-        const proj = stats.rows.find(r => r.stat_type === 'projection');
+        const proj = stats.rows.find((r: any) => r.stat_type === 'projection');
         expect(proj.hr).toBe(35);
         expect(parseFloat(proj.avg)).toBeCloseTo(0.3);
     });

@@ -25,6 +25,7 @@ import type {
     HitterPlayer,
     PitcherPlayer
 } from "@/types";
+import { getCachedPlayers } from './db.service';
 
 //AI used in assistance to writting helper functions
 
@@ -36,7 +37,8 @@ import type {
  * @param request The valuation request containing league settings and draft state
  * @returns An array of player valuations with normalized values and auction prices
  */
-export function evaluatePlayers(players: PlayerPools, request: ValuationRequest): PlayerValuation[] {
+export async function evaluatePlayers(request: ValuationRequest): Promise<PlayerValuation[]> {
+    const players : PlayerPools = await getCachedPlayers();
     const {leagueSettings, draftState} = request;
     const rosterSize = Object.values(leagueSettings.rosterSlots).reduce(
         (sum, count) => sum + count,

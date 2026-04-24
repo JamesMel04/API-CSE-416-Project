@@ -5,14 +5,16 @@ import fs from 'fs';
 import cors from "cors"
 import dotenv from 'dotenv';
 import { Player, PlayerPools, ValuationRequest } from '@/types';
-import {Pool} from "pg";
+import { mockValuationRequest } from "@/__tests__/fixtures/valuationRequest";
+import dbPool from './services/db.pool';
+import { checkAPIKey, getCachedPlayers } from './services/db.service';
 dotenv.config();
 import crypto from "crypto";
 import { hashPassword, verifyPassword } from "@/utils/password";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import { getAllPlayers } from '@/services/mlb.service';
-import { playersPool } from './services/db.service';
+import { evaluatePlayers } from './services/evaluation';
+
 
 
 const app = express();
@@ -80,25 +82,7 @@ const PORT = process.env.PORT ?? 5000;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 //const {Pool}=require("pg");
 const implemented=false
-let dbPool : any;
-// If you wanna test locally via downloading and running your own Postgres instance,
-// Just delete the env variable and run on port 5432
-if(process.env.DB_LINK) {
-  dbPool=new Pool({
-    connectionString: process.env.DB_LINK,
-    ssl:{rejectUnauthorized: false}
-  });
-}
-// Else it'll use your local instance
-else {
-  dbPool = new Pool({
-    host: 'localhost',
-    port: 5432,
-    database: 'mlbtest',
-    user: 'postgres',
-    password: process.env.DB_PASSWORD,
-  });
-}
+
 const set="SET('C','1B','2B','3B','SS','CI','MI','OF1','OF2','OF3','OF4','OF5','UTIL','P1','P2','P3','P4','P5','P6','P7','P8','P9')"
 
 
@@ -110,7 +94,6 @@ const playersPath = path.join(__dirname, '..', 'data', 'players.json');
 const playersJsonString = fs.readFileSync(playersPath, 'utf-8');
 // Create an in-memory json object that holds the player data 
 // *Note*: The approach used here is to have the data stored in an object once the server runs, this allows faster return on request but may contain stale data if data changes, it could be good for the MVP, as we don't have real DB set up yet.  
-const players: Player[] = JSON.parse(playersJsonString);
 
 app.use(cors());
 // Reads JSON puts in req.body
@@ -126,64 +109,31 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
 
-// Handle players requests
-app.get('/players', async (req, res) => {
-  //when implementing database querying here check for code 42P01 to create table
-  if(!implemented){
-    res.json(players);
-  }else{
-    try{
-      const players=await dbPool.query("SELECT * FROM players");
-      res.json(players.rows);
-    }catch(err:any){
-      if(err.code !="42P01"){
-        console.log(err);
-        res.json(err);
-      }
-    //   stats: {
-    //     projection: HitterSeasonStats;
-    //     lastYear: HitterSeasonStats;
-    //     threeYearAvg: HitterSeasonStats;
-    // };
-    // id: number;
-    // name: string;
-    // team: string;
-    // teamId: number;
-    // position: string;
-    // age: number;
-    // positions: PlayerPosition[];
-    // suggestedValue: number;
-    // injuryStatus: string;
-      else{
-        const table=await dbPool.query("CREATE TABLE players (id varchar(70) PRIMARY KEY, name varchar(50) NOT NULL, team char(3) NOT NULL, position varchar(4)[] NOT NULL, stats text NOT NULL);");
-        //temporary output, after implementation of routes fill in the player data and then json that result
-        const players=await getAllPlayers();
-        res.json(players);
-        //INCOMPLETE
-        for(let i=0;i<players.hitters.length;i++){
-          let str=`INSERT INTO players VALUES ('${players.hitters[i]?.id}', '${players.hitters[i]?.name}', 
-          '${players.hitters[i]?.team}', '${players.hitters[i]?.teamId}', '${players.hitters[i]?.position}', 
-          '${players.hitters[i]?.age}', '${players.hitters[i]?.injuryStatus}, '0')`
-        }
-        //INCOMPLETE
-      }
-    }
+const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+  const apiKey = req.headers["mlb-api-key"];
+
+  if (!apiKey || Array.isArray(apiKey) || !await checkAPIKey(apiKey)) {
+    return res.status(401).send('Unauthorized, invalid API Key');
   }
-  
+
+  next();
+};
+
+
+// Handle players requests
+app.get('/players', authenticate, async (req, res) => {
+  // Grab cached hitters, pitchers
+  let {hitters, pitchers} = await getCachedPlayers();
+  res.json({hitters, pitchers});
 })
 
-//Starts server on this port
-app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-})
 
 // User request with ValuationRequest: (LeagueSettings, DraftState)
-app.post('/players/valuations', (req, res) => {
+app.post('/players/valuations', authenticate, async (req, res) => {
     try {
         const request = req.body as ValuationRequest;
         //Calling our valuation service on the players
-        // const valuations = evaluatePlayers(players, request);
-        const valuations = {} // Return empty for now.
+        const valuations = await evaluatePlayers(request);
         res.json(valuations);
     } catch (error) {
         res.status(400).json({
@@ -370,3 +320,9 @@ app.get('/players/data/test3',async (req,res)=>{
     res.json(err);
   }
 });
+
+
+//Starts server on this port
+app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+})
