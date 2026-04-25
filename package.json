@@ -2,19 +2,18 @@
   "name": "mlb_api",
   "version": "1.0.0",
   "main": "index.js",
-  "type":"module",
+  "type": "module",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
-    "dev": "ts-node -r tsconfig-paths/register src/index.ts",
+    "dev": "tsx -r tsconfig-paths/register src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "test": "vitest",
     "test:run": "vitest run",
     "test:ci": "vitest run --exclude src/__tests__/db.test.ts",
     "test:db": "vitest run src/__tests__/db.test.ts"
-
   },
   "repository": {
     "type": "git",
@@ -45,6 +44,7 @@
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.3"
   }

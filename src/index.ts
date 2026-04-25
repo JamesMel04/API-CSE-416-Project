@@ -1,20 +1,22 @@
 import express from 'express';
 import path from 'path';
-// Node's file system (read/write files)
 import fs from 'fs';
 import cors from "cors"
 import dotenv from 'dotenv';
-import { Player, PlayerPools, ValuationRequest } from '@/types';
-import { mockValuationRequest } from "@/__tests__/fixtures/valuationRequest";
+import { fileURLToPath } from 'url';
+import { ValuationRequest } from '@/types';
 import dbPool from './services/db.pool';
 import { checkAPIKey, getCachedPlayers } from './services/db.service';
-dotenv.config();
 import crypto from "crypto";
 import { hashPassword, verifyPassword } from "@/utils/password";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { evaluatePlayers } from './services/evaluation';
 
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 
 const app = express();
