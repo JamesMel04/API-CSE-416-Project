@@ -11,6 +11,8 @@ export default function DashboardPage() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [showRegenerateWarning, setShowRegenerateWarning] = useState(false);
+  const [isLoadingKey, setIsLoadingKey] = useState(true);
+  const [keyLoadFailed, setKeyLoadFailed] = useState(false);
 
   const hasGeneratedKey = apiKey.length > 0;
 
@@ -28,13 +30,25 @@ export default function DashboardPage() {
         const existingKey = await getApiKey();
         setApiKey(existingKey);
       } catch {
-        localStorage.removeItem("apiAuthToken");
-        router.push("/login");
+        setKeyLoadFailed(true);
+        setError("Failed to load your existing API key. Do not generate a new key until this is fixed.");
+      } finally {
+        setIsLoadingKey(false);
       }
+      
     };
   
     loadExistingKey();
   }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("apiAuthToken");
+    setApiKey("");
+    setStatus("");
+    setError("");
+    router.replace("/login");
+  };
+  
 
   // create a brand new key
   const createKey = async () => {
@@ -84,8 +98,18 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-linear-to-b from-blue-900 to-emerald-700 flex items-center justify-center px-6">
+    <main className="relative min-h-screen bg-linear-to-b from-blue-900 to-emerald-700 flex items-center justify-center px-6">
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="absolute top-6 right-6 px-4 py-2 rounded-lg bg-white text-gray-800 font-bold text-sm hover:bg-gray-100 transition-colors"
+      >
+        Logout
+      </button>
+
+
       <section className="bg-white rounded-2xl shadow-2xl px-12 py-14 w-full max-w-2xl">
+        
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-3">
           API License Key
         </h1>
@@ -97,10 +121,16 @@ export default function DashboardPage() {
         <button
           type="button"
           onClick={handleGenerateKey}
-          className="w-full py-4 rounded-lg bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-colors"
+          disabled={isLoadingKey || keyLoadFailed}
+          className="w-full py-4 rounded-lg bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          {hasGeneratedKey ? "Regenerate API Key" : "Generate API Key"}
+          {isLoadingKey
+            ? "Loading API Key..."
+            : hasGeneratedKey
+              ? "Regenerate API Key"
+              : "Generate API Key"}
         </button>
+
 
         {apiKey && (
           <div className="mt-8">

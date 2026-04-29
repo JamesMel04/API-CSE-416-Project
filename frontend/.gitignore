@@ -8,5 +8,5 @@ dist
 !.env.example
 
 
-frontend/.next/
+.next/
 *.tsbuildinfo
