@@ -51,6 +51,12 @@ export async function evaluatePlayers(request: ValuationRequest): Promise<Player
     const eligiblePitchers: PitcherPlayer[] = pitchers.filter((p) => !draftedPlayerIds.has(p.id));
     const eligible: Player[] = [...eligibleHitters, ...eligiblePitchers];
 
+    // Helper to ensure we always have a valid number for math
+    const safeNum = (val: any): number => {
+        const n = parseFloat(val);
+        return isNaN(n) ? 0 : n;
+    };
+
     // [Step 3: Calculate mean and stdDev]
     const hitterMean = {} as HitterCategorySummary;
     const hitterStdDev = {} as HitterCategorySummary;
@@ -58,15 +64,15 @@ export async function evaluatePlayers(request: ValuationRequest): Promise<Player
     const pitcherStdDev = {} as PitcherCategorySummary;
 
     for (const category of HITTER_SCORING_CATEGORIES) {
-        const values = eligibleHitters.map(p => p.stats.projection.hitting[category]);
+        const values = eligibleHitters.map(p => safeNum(p.stats.projection.hitting[category]));
         hitterMean[category] = values.length > 0 ? mean(values) : 0;
-        hitterStdDev[category] = values.length > 1 ? standardDeviation(values) : 0;
+        hitterStdDev[category] = values.length > 1 ? (standardDeviation(values) || 0) : 0;
     }
 
     for (const category of PITCHER_SCORING_CATEGORIES) {
-        const values = eligiblePitchers.map(p => p.stats.projection.pitching[category]);
+        const values = eligiblePitchers.map(p => safeNum(p.stats.projection.pitching[category]));
         pitcherMean[category] = values.length > 0 ? mean(values) : 0;
-        pitcherStdDev[category] = values.length > 1 ? standardDeviation(values) : 0;
+        pitcherStdDev[category] = values.length > 1 ? (standardDeviation(values) || 0) : 0;
     }
 
     // [Step 4: Z-Scores]
@@ -79,10 +85,11 @@ export async function evaluatePlayers(request: ValuationRequest): Promise<Player
     eligibleHitters.forEach(player => {
         const scores = {} as HitterCategorySummary;
         for (const cat of HITTER_SCORING_CATEGORIES) {
-            const val = player.stats.projection.hitting[cat];
-            const avg = hitterMean[cat];
-            const sd = hitterStdDev[cat];
+            const val = safeNum(player.stats.projection.hitting[cat]);
+            const avg = hitterMean[cat] || 0;
+            const sd = hitterStdDev[cat] || 0;
             const isNeg = NEGATIVE_HITTER_CATEGORIES.has(cat);
+            // Fix: sd === 0 check prevents NaN
             scores[cat] = sd === 0 ? 0 : isNeg ? (avg - val) / sd : (val - avg) / sd;
         }
         hitterZScores[player.id] = scores;
@@ -91,9 +98,9 @@ export async function evaluatePlayers(request: ValuationRequest): Promise<Player
     eligiblePitchers.forEach(player => {
         const scores = {} as PitcherCategorySummary;
         for (const cat of PITCHER_SCORING_CATEGORIES) {
-            const val = player.stats.projection.pitching[cat];
-            const avg = pitcherMean[cat];
-            const sd = pitcherStdDev[cat];
+            const val = safeNum(player.stats.projection.pitching[cat]);
+            const avg = pitcherMean[cat] || 0;
+            const sd = pitcherStdDev[cat] || 0;
             const isNeg = NEGATIVE_PITCHER_CATEGORIES.has(cat);
             scores[cat] = sd === 0 ? 0 : isNeg ? (avg - val) / sd : (val - avg) / sd;
         }
@@ -101,7 +108,6 @@ export async function evaluatePlayers(request: ValuationRequest): Promise<Player
     });
 
     // [Step 5 & 6: Weights and Base Scores]
-    // Default weights (ensure these match your ScoringCategory types)
     const hWeights: HitterCategoryWeights = { r: 1, "1b": 1, "2b": 1, "3b": 1, hr: 1, rbi: 1, bb: 1, k: 1, sb: 1, cs: 1, obp: 1, slg: 1 };
     const pWeights: PitcherCategoryWeights = { w: 1, sv: 1, so: 1, ip: 1, era: 1, whip: 1, avg: 1 };
 
@@ -110,36 +116,60 @@ export async function evaluatePlayers(request: ValuationRequest): Promise<Player
     eligibleHitters.forEach(p => {
         const z = hitterZScores[p.id];
         if (!z) return;
-        const base = HITTER_SCORING_CATEGORIES.reduce((sum, cat) => sum + (z[cat] * hWeights[cat]), 0);
-        adjustedScores[p.id] = base * getAgeFactor(p.age);
+        const base = HITTER_SCORING_CATEGORIES.reduce((sum, cat) => sum + (safeNum(z[cat]) * (hWeights[cat] ?? 1)), 0);
+        // Fix: age factor can sometimes return NaN/Undefined in some implementations
+        const ageEffect = safeNum(getAgeFactor(p.age)) || 1;
+        adjustedScores[p.id] = base * ageEffect;
     });
 
     eligiblePitchers.forEach(p => {
         const z = pitcherZScores[p.id];
         if (!z) return;
-        const base = PITCHER_SCORING_CATEGORIES.reduce((sum, cat) => sum + (z[cat] * pWeights[cat]), 0);
-        adjustedScores[p.id] = base * getAgeFactor(p.age);
+        const base = PITCHER_SCORING_CATEGORIES.reduce((sum, cat) => sum + (safeNum(z[cat]) * (pWeights[cat] ?? 1)), 0);
+        const ageEffect = safeNum(getAgeFactor(p.age)) || 1;
+        adjustedScores[p.id] = base * ageEffect;
     });
 
     // [Step 10-13: Replacement Logic and Auction Price]
-    const replacementScores = computeReplacementScores(eligible, adjustedScores, leagueSettings, leagueState);
+    const effectiveTeamCount = Math.max(10, leagueSettings.teamCount);
+    const replacementScores = computeReplacementScores(
+        eligible,
+        adjustedScores,
+        { ...leagueSettings, teamCount: effectiveTeamCount },
+        leagueState
+    );
     const marginalScores: Record<PlayerID, number> = {};
 
     for (const player of eligible) {
         const score = adjustedScores[player.id] ?? 0;
         const slots = getEligibleRosterSlots(player);
-        const bestMargin = Math.max(0, ...slots.map(s => score - replacementScores[s]));
+        
+        // Fix: Math.max with an empty array (spread) results in -Infinity. 
+        // We ensure a default of [0] if slots is empty.
+        const margins = slots.map(s => score - (replacementScores[s] ?? 0));
+        const bestMargin = margins.length > 0 ? Math.max(0, ...margins) : 0;
+        
         marginalScores[player.id] = bestMargin;
     }
 
-    const maxMarginal = Math.max(0, ...Object.values(marginalScores));
-    const dollarsPerSpot = leagueSettings.budget / rosterSize;
+    const allMarginalValues = Object.values(marginalScores);
+    const maxMarginal = allMarginalValues.length > 0 ? Math.max(0, ...allMarginalValues) : 0;
+    
+    // Safety check for division by zero
+    const dollarsPerSpot = rosterSize > 0 ? (leagueSettings.budget / rosterSize) : 0;
 
     return eligible.map(player => {
         const mScore = marginalScores[player.id] ?? 0;
         const normalized = maxMarginal > 0 ? mScore / maxMarginal : 0;
+        
+        // Math.pow ensures that elite players get exponentially more value
         const price = Math.max(1, Math.pow(dollarsPerSpot * normalized, 1.5));
-        return { id: player.id, normalizedValue: normalized, auctionPrice: price };
+        
+        return { 
+            id: player.id, 
+            normalizedValue: normalized, 
+            auctionPrice: Math.round(price) 
+        };
     });
 }
 
