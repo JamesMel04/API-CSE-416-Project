@@ -1,6 +1,5 @@
 /** Fixtures for DB tests */
-
-import { HitterPlayer } from "@/types";
+import { HitterPlayer } from "../../types";
 
 export const mockHitter: HitterPlayer = {
     id: 660271,

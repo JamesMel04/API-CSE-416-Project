@@ -1,5 +1,4 @@
-import { HitterPlayer, HitterStats, PitcherPlayer, PitcherStats, PlayerPools, PlayerPosition } from "@/types";
-import { Pool } from "pg";
+import { HitterPlayer, HitterStats, PitcherPlayer, PitcherStats, PlayerPools, PlayerPosition } from "../types";
 import { getAllPlayers } from "./mlb.service";
 import pool from "./db.pool" ;
 

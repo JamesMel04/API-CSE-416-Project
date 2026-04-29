@@ -1,4 +1,4 @@
-import { LeagueState } from "@/types";
+import { LeagueState } from "../../types";
 
 export const mockLeagueState: LeagueState = {
     teams: {

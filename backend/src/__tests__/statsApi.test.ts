@@ -2,7 +2,9 @@
  * Unit tests for functions which communicate with the MLB stats api in mlb.service.ts
  */
 import { vi, describe, test, expect, beforeEach } from 'vitest';
-import { mockTeamResponse, mockRosterActiveResponse, mockHitterProjectedResponse, mockPitcherStats, mockHitterStats } from './fixtures/mlbApiResponses';
+import { PitcherStats } from '../types';
+import { mockTeamResponse, mockRosterActiveResponse, mockPitcherStats, mockHitterStats } from './fixtures/mlbApiResponses';
+import { getTeams, getRoster, averageStats, getAllPlayerStats, mapStats, getPlayerAge, getAllPlayers } from '../services/mlb.service';
 
 
 const mockGet = vi.hoisted(() => vi.fn());
@@ -12,9 +14,6 @@ vi.mock('axios', () => ({
         create: vi.fn(() => ({ get: mockGet })),
     },
 }));
-
-import { getTeams, getRoster, averageStats, getAllPlayerStats, mapStats, getPlayerAge, getAllPlayers } from '../services/mlb.service';
-import { PitcherStats } from '@/types';
 
 describe('getTeams', () => {
     beforeEach(() => {
