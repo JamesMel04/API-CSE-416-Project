@@ -3,8 +3,7 @@ import {
     HITTER_SCORING_CATEGORIES,
     PITCHER_SCORING_CATEGORIES,
     ROSTER_SLOTS,
-} from "@/types";
-
+} from "../types";
 import type {
     LeagueState,
     HitterCategorySummary,
@@ -25,7 +24,7 @@ import type {
     HitterPlayer,
     PitcherPlayer,
     PlayerID
-} from "@/types";
+} from "../types";
 import { getCachedPlayers } from './db.service';
 
 export async function evaluatePlayers(request: ValuationRequest): Promise<PlayerValuation[]> {

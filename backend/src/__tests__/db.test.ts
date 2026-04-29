@@ -1,9 +1,8 @@
-import { Pool } from "pg";
-import { mockHitter } from "./fixtures/db";
-import { insertHitter, insertPitcher } from "../services/db.service";
-import playersPool from "../services/db.pool";
 import { afterAll, describe, expect, test } from "vitest";
 import dotenv from "dotenv";
+import { mockHitter } from "./fixtures/db";
+import { insertHitter } from "../services/db.service";
+import playersPool from "../services/db.pool";
 dotenv.config();
 /**
  * Tests for database, should only be done on a local db
