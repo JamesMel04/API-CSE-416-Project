@@ -2,9 +2,8 @@ MLB API
 
 API URL: [https://api-cse-416-project-5a0b.onrender.com/](https://api-cse-416-project-5a0b.onrender.com/)
 
-API Dashboard Frontend: TBD
+API Dashboard Frontend: [https://api-cse-416-project-1.onrender.com/](https://api-cse-416-project-1.onrender.com/)
 
-Draft Kit Backend: [https://draft-kit-backend-cse-416-project.onrender.com/](https://draft-kit-backend-cse-416-project.onrender.com/)
 
 ## Overview
 
@@ -30,9 +29,10 @@ In other words:
 
 ## Project Setup
 
-Run whenever dependency files change (`package.json` or `package-lock.json`):
+Backend setup:
 
 ```bash
+cd backend
 npm install
 ```
 
@@ -49,6 +49,31 @@ npm start
 ```
 
 Start the server directly from TypeScript:
+
+```bash
+npm run dev
+```
+
+Frontend setup:
+
+```bash
+cd frontend
+npm install
+```
+
+Build the Next.js frontend:
+
+```bash
+npm run build
+```
+
+Start the already-built frontend:
+
+```bash
+npm start
+```
+
+Start the frontend dev server:
 
 ```bash
 npm run dev
@@ -125,7 +150,7 @@ All requests and responses use JSON except `GET /`, which returns HTML.
 | GET    | `/api-keys`           | JWT     | Get the current active API key for the logged-in developer               |
 | POST   | `/api-keys`           | JWT     | Revoke the current active API key and issue a new one                    |
 | GET    | `/players`            | API key | Return the current hitter and pitcher player pools                       |
-| POST   | `/players/valuations` | API key | Return valuation output for the supplied league settings and draft state |
+| POST   | `/players/valuations` | API key | Return valuation output for the supplied league settings and league state |
 
 
 ## Detailed Routes
@@ -354,7 +379,7 @@ Possible errors:
 
 ### POST `/players/valuations`
 
-Computes valuations for all undrafted players based on league settings and current draft state.
+Computes valuations for all undrafted players based on league settings and current league state.
 
 Required header:
 
@@ -382,22 +407,30 @@ Request body type: `ValuationRequest`
       "P": 9
     }
   },
-  "draftState": {
-    "rosterAssignments": [
-      {
-        "teamId": "team-1",
-        "playerId": 660271,
-        "assignedPosition": "U"
+  "leagueState": {
+    "teams": {
+      "team-1": {
+        "roster": {
+          "U": 660271,
+          "P": 592450
+        }
+      },
+      "team-2": {
+        "roster": {
+          "SS": 665742
+        }
       }
-    ]
+    }
   }
 }
 ```
 
 Important request details:
 
-- `playerId` is a number, not a string
-- `assignedPosition` must be one of:
+- `leagueState.teams` is keyed by team name or team id
+- each team has a `roster` object keyed by roster slot
+- player IDs in the roster object are numbers, not strings
+- roster slot keys must be one of:
   - `C`
   - `1B`
   - `2B`
@@ -433,8 +466,8 @@ mlb-api-key: <api_key>
       "P": 9
     }
   },
-  "draftState": {
-    "rosterAssignments": []
+  "leagueState": {
+    "teams": {}
   }
 }
 ```
@@ -446,12 +479,12 @@ Example response:
   {
     "id": 592450,
     "normalizedValue": 0.9827,
-    "auctionPrice": 18.36
+    "auctionPrice": 18
   },
   {
     "id": 660271,
     "normalizedValue": 0.9661,
-    "auctionPrice": 17.9
+    "auctionPrice": 17
   }
 ]
 ```
@@ -507,9 +540,9 @@ All players:
 
 [https://statsapi.mlb.com/api/v1/sports/1/players?season=2026](https://statsapi.mlb.com/api/v1/sports/1/players?season=2026)
 
-Player season stats:
+Player year-by-year stats:
 
-[https://statsapi.mlb.com/api/v1/people/{PlayerID}/stats?stats=season](https://statsapi.mlb.com/api/v1/people/{PlayerID}/stats?stats=season)
+[https://statsapi.mlb.com/api/v1/people/{PlayerID}/stats?stats=yearByYear](https://statsapi.mlb.com/api/v1/people/{PlayerID}/stats?stats=yearByYear)
 
 Player projected stats:
 
