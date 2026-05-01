@@ -37,14 +37,14 @@ export async function getAllPlayers(): Promise<PlayerPools> {
             if (p.position === "TWP") {
                 const hitterStats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
                 const pitcherStats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
-                hitters.push({ ...p, positions: [p.position], age, suggestedValue: 0, stats: hitterStats });
-                pitchers.push({ ...p, positions: [p.position], age, suggestedValue: 0, stats: pitcherStats });
+                hitters.push({ ...p, mlbPositions: [p.position], fantasyPositions: [], age, suggestedValue: 0, stats: hitterStats });
+                pitchers.push({ ...p, mlbPositions: [p.position], fantasyPositions: [], age, suggestedValue: 0, stats: pitcherStats });
             } else if (p.position === "P") {
                 const stats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
-                pitchers.push({ ...p, positions: [p.position], age, suggestedValue: 0, stats });
+                pitchers.push({ ...p, mlbPositions: [p.position], fantasyPositions: [], age, suggestedValue: 0, stats });
             } else {
                 const stats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
-                hitters.push({ ...p, positions: [p.position], age, suggestedValue: 0, stats });
+                hitters.push({ ...p, mlbPositions: [p.position], fantasyPositions: [], age, suggestedValue: 0, stats });
             }
         }
     }

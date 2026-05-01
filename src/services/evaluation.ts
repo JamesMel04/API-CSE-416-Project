@@ -154,7 +154,7 @@ function getAgeFactor(age: number | undefined): number {
 
 function getEligibleRosterSlots(player: Player): RosterSlot[] {
     const slots = new Set<RosterSlot>();
-    for (const pos of player.positions) {
+    for (const pos of player.mlbPositions) {
         if (["C"].includes(pos)) { slots.add("C"); slots.add("U"); }
         else if (["1B"].includes(pos)) { slots.add("1B"); slots.add("CI"); slots.add("U"); }
         else if (["2B"].includes(pos)) { slots.add("2B"); slots.add("MI"); slots.add("U"); }

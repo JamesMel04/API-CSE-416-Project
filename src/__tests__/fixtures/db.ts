@@ -9,7 +9,8 @@ export const mockHitter: HitterPlayer = {
     teamId: 119,
     position: 'DH',
     age: 31,
-    positions: ['DH'],
+    mlbPositions: [],
+    fantasyPositions: [],
     injuryStatus: 'A',
     suggestedValue: 0,
     stats: {
