@@ -117,7 +117,6 @@ export interface Player {
     name: string;
     team: string;
     teamId: number;
-    position: string;
     age: number;
     mlbPositions: PlayerPosition[];
     fantasyPositions: RosterSlot[];

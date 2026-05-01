@@ -3,6 +3,7 @@
 */
 import axios from "axios";
 import { HitterPlayer, HitterSeasonStats, HitterStats, PitcherPlayer, PitcherSeasonStats, PitcherStats, Player, PlayerPools, PlayerPosition, SeasonStats } from "../types";
+import { positionEligibility } from "./db.service";
 
 /**
  * Axios getter to make fetching responses easier
@@ -31,20 +32,22 @@ export async function getAllPlayers(): Promise<PlayerPools> {
     for (const t of teams) {
         const roster = await getRoster(t.id, t.abbreviation);
         for (const p of roster) {
-            // Grab age as well (this is expensive)
+            // Grab age 
             const age = await getPlayerAge(p.id);
+            // Grab eligible positions
+            const eligiblePositions = await positionEligibility(p.id);
             // Special case for Ohtani
             if (p.position === "TWP") {
                 const hitterStats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
                 const pitcherStats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
-                hitters.push({ ...p, mlbPositions: [p.position], fantasyPositions: [], age, suggestedValue: 0, stats: hitterStats });
-                pitchers.push({ ...p, mlbPositions: [p.position], fantasyPositions: [], age, suggestedValue: 0, stats: pitcherStats });
+                hitters.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions: [], age, suggestedValue: 0, stats: hitterStats });
+                pitchers.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions: [], age, suggestedValue: 0, stats: pitcherStats });
             } else if (p.position === "P") {
                 const stats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
-                pitchers.push({ ...p, mlbPositions: [p.position], fantasyPositions: [], age, suggestedValue: 0, stats });
+                pitchers.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions: [], age, suggestedValue: 0, stats });
             } else {
                 const stats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
-                hitters.push({ ...p, mlbPositions: [p.position], fantasyPositions: [], age, suggestedValue: 0, stats });
+                hitters.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions: [], age, suggestedValue: 0, stats });
             }
         }
     }
