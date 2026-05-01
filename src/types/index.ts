@@ -119,7 +119,8 @@ export interface Player {
     teamId: number;
     position: string;
     age: number;
-    positions: PlayerPosition[];
+    mlbPositions: PlayerPosition[];
+    fantasyPositions: RosterSlot[];
     suggestedValue: number;
      /**
          * 
@@ -164,24 +165,16 @@ export interface LeagueSettings {
 
 // ==================== Player positions from source data ====================
 export const PLAYER_POSITIONS = [
-    "C",    // Catcher
-    "1B",   // First base
-    "2B",   // Second base
-    "3B",   // Third base
-    "SS",   // Shortstop
-    "CI",   // Corner infield
-    "MI",   // Middle infield
-    "IF",   // Infield
-    "LF",   // Left field
-    "CF",   // Center field
-    "RF",   // Right field
-    "OF",   // Outfield
-    "DH",   // Designated hitter
-    "U",    // Utility
-    "P",    // Pitcher
-    "SP",   // Starting pitcher
-    "RP",   // Relief pitcher
-    "TWP", // Two-way player
+    "1B",
+    "2B",
+    "3B",
+    "C",
+    "CF",
+    "LF",
+    "P",
+    "RF",
+    "SS",
+    "TWP",
 ] as const;
 export type PlayerPosition = typeof PLAYER_POSITIONS[number];
 
