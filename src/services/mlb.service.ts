@@ -2,8 +2,31 @@
  * Functions to communicate with the MLB Stats API
 */
 import axios from "axios";
-import { HitterPlayer, HitterSeasonStats, HitterStats, PitcherPlayer, PitcherSeasonStats, PitcherStats, Player, PlayerPools, PlayerPosition, SeasonStats } from "../types";
+import { HitterPlayer, HitterSeasonStats, HitterStats, InjuryStatus, PitcherPlayer, PitcherSeasonStats, PitcherStats, PlayerPools, PlayerPosition, RosterSlot, SeasonStats } from "../types";
 import { positionEligibility } from "./db.service";
+
+// Mapping record for translating MLB positiosn to Fantasy Positions
+const MLB_TO_FANTASY: Record<PlayerPosition, RosterSlot[]> = {
+    "C":   ["C", "U"],
+    "1B":  ["1B", "CI", "U"],
+    "2B":  ["2B", "MI", "U"],
+    "3B":  ["3B", "CI", "U"],
+    "SS":  ["SS", "MI", "U"],
+    "LF":  ["OF", "U"],
+    "CF":  ["OF", "U"],
+    "RF":  ["OF", "U"],
+    "DH":  ["U"],
+    "P":   ["P"],
+    "TWP": ["P"],
+};
+
+export function mlbToFantasyPositions(mlbPositions: PlayerPosition[]): RosterSlot[] {
+    const slots = new Set<RosterSlot>();
+    for (const pos of mlbPositions) {
+        for (const slot of MLB_TO_FANTASY[pos]) slots.add(slot);
+    }
+    return [...slots];
+}
 
 /**
  * Axios getter to make fetching responses easier
@@ -37,17 +60,18 @@ export async function getAllPlayers(): Promise<PlayerPools> {
             // Grab eligible positions
             const eligiblePositions = await positionEligibility(p.id);
             // Special case for Ohtani
+            const fantasyPositions = mlbToFantasyPositions(eligiblePositions);
             if (p.position === "TWP") {
                 const hitterStats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
                 const pitcherStats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
-                hitters.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions: [], age, suggestedValue: 0, stats: hitterStats });
-                pitchers.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions: [], age, suggestedValue: 0, stats: pitcherStats });
+                hitters.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions, age, suggestedValue: 0, stats: hitterStats });
+                pitchers.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions, age, suggestedValue: 0, stats: pitcherStats });
             } else if (p.position === "P") {
                 const stats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
-                pitchers.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions: [], age, suggestedValue: 0, stats });
+                pitchers.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions, age, suggestedValue: 0, stats });
             } else {
                 const stats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
-                hitters.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions: [], age, suggestedValue: 0, stats });
+                hitters.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions, age, suggestedValue: 0, stats });
             }
         }
     }
@@ -87,7 +111,7 @@ export async function getRoster(teamId: any, teamAbb : any, active : boolean = f
             team: string,
             teamId: number,
             position: PlayerPosition, 
-            injuryStatus: string }]>{
+            injuryStatus: InjuryStatus }]>{
     let res : any;
     if (active) {
         res = await api.get(`/teams/${teamId}/roster`, 
@@ -104,7 +128,7 @@ export async function getRoster(teamId: any, teamAbb : any, active : boolean = f
             team: teamAbb,
             teamId: teamId,
             position: player.position.abbreviation,
-            injuryStatus: player.status.code
+            injuryStatus: player.status.code as InjuryStatus
         }
     ));
 }

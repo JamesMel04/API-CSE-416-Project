@@ -158,6 +158,7 @@ export const PLAYER_POSITIONS = [
     "3B",
     "C",
     "CF",
+    "DH",
     "LF",
     "P",
     "RF",

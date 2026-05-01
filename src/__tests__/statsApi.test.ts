@@ -143,7 +143,7 @@ describe("getAllPlayers", () => {
         expect(hitter?.id).toBe(1);
         expect(hitter?.team).toBe('LAD');
         expect(hitter?.mlbPositions).toContain('RF');
-        expect(hitter?.fantasyPositions).toEqual([]);
+        expect(hitter?.fantasyPositions).toEqual(['OF', 'U']);
         expect(hitter?.stats.projection.hitting).toBeDefined();
         expect(hitter?.stats.projection.hitting.hr).toBe(20);
         expect(hitter?.stats.lastYear.hitting.avg).toBeCloseTo(0.3);
