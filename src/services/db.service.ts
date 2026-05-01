@@ -1,7 +1,8 @@
 import { HitterPlayer, HitterStats, PitcherPlayer, PitcherStats, PlayerPools, PlayerPosition } from "@/types";
 import { Pool } from "pg";
 import { getAllPlayers } from "./mlb.service";
-import pool from "./db.pool" ;
+import pool from "./db.pool";
+import axios from "axios";
 
 // After how many hours to refresh data
 const REFRESH_TIME = 24;
@@ -22,6 +23,29 @@ const REFRESH_TIME = 24;
 // });
 
 /**
+ * Queries the MLB stats API for the "fielding" stats to find eligilble positions
+ * (those where they have >= 10 games played in the 2025 season).
+ */
+export async function positionEligibility(playerID: number): Promise<PlayerPosition[]> {
+    try {
+        const res: any = await axios.get(
+            `https://statsapi.mlb.com/api/v1/people/${playerID}/stats`,
+            { params: { stats: "season", group: "fielding", season: 2025 } }
+        );
+        const splits: any[] = res.data.stats?.[0]?.splits ?? [];
+        // A set has to be used cause there's an aggregate row and a row per team
+        const positions = new Set<PlayerPosition>();
+        for (const s of splits) {
+            if ((s.stat?.gamesPlayed ?? 0) >= 10)
+                positions.add(s.position.abbreviation as PlayerPosition);
+        }
+        return [...positions];
+    } catch {
+        return [];
+    }
+}
+
+/**
  * Returns cached players from the database, if they are new enough. Otherwise, it refreshes the DB
  */
 export async function getCachedPlayers() : Promise<PlayerPools> {
@@ -39,26 +63,28 @@ export async function getCachedPlayers() : Promise<PlayerPools> {
 
     // This will give rows where the player information repeats in 3 rows for each stat type. Then, from this join,
     // you can make the player objects to add to the hitters and pitchers
-    populateHitters(hitters, hitterRows.rows);
-    populatePitchers(pitchers, pitcherRows.rows);
+    await populateHitters(hitters, hitterRows.rows);
+    await populatePitchers(pitchers, pitcherRows.rows);
 
 
     return {hitters, pitchers};
 }
 
-export function populateHitters(hitters : HitterPlayer[], rows : any) {
+export async function populateHitters(hitters : HitterPlayer[], rows : any) {
     for (let i = 0; i < rows.length; i+=3) {
         const lyI = i; // last year index
         const pI = i+1; // projected index
         const tyaI = i+2 // three-year average index
+        const mlbPositions = await positionEligibility(rows[i].mlb_id);
         let player : HitterPlayer = {
             id: rows[i].mlb_id,
             name: rows[i].name,
             team: rows[i].team,
             teamId: rows[i].team_id,
-            positions: [rows[i].position as PlayerPosition],
             position: rows[i].position,
             age: rows[i].age,
+            mlbPositions,
+            fantasyPositions: [],
             injuryStatus: rows[i].injury_status,
             suggestedValue: rows[i].suggested_value,
             stats: {
@@ -80,19 +106,21 @@ export function populateHitters(hitters : HitterPlayer[], rows : any) {
     }
 }
 
-export function populatePitchers(pitchers : PitcherPlayer[], rows : any) {
-     for (let i = 0; i < rows.length; i+=3) {
+export async function populatePitchers(pitchers : PitcherPlayer[], rows : any) {
+    for (let i = 0; i < rows.length; i+=3) {
         const lyI = i; // last year index
         const pI = i+1; // projected index
         const tyaI = i+2 // three-year average index
+        const mlbPositions = await positionEligibility(rows[i].mlb_id);
         let player : PitcherPlayer = {
             id: rows[i].mlb_id,
             name: rows[i].name,
             team: rows[i].team,
             teamId: rows[i].team_id,
-            positions: [rows[i].position as PlayerPosition],
             position: rows[i].position,
             age: rows[i].age,
+            mlbPositions,
+            fantasyPositions: [],
             injuryStatus: rows[i].injury_status,
             suggestedValue: rows[i].suggested_value,
             stats: {
