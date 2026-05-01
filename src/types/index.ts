@@ -121,18 +121,7 @@ export interface Player {
     mlbPositions: PlayerPosition[];
     fantasyPositions: RosterSlot[];
     suggestedValue: number;
-     /**
-         * 
-         * Status   |   Meaning
-         * -------------------------
-         * A        |   Active, no injury
-         * D7       |   Injured 7-day
-         * D10      |   Injured 10-Day
-         * D15      |   Injured 15-Day
-         * D60      |   Injured 60-Day
-         * 
-    */
-    injuryStatus: string,
+    injuryStatus: InjuryStatus,
     stats: {
         projection: SeasonStats;
         lastYear: SeasonStats;
@@ -176,6 +165,33 @@ export const PLAYER_POSITIONS = [
     "TWP",
 ] as const;
 export type PlayerPosition = typeof PLAYER_POSITIONS[number];
+
+/** Injury Status
+         * 
+         * Status   |   Meaning
+         * -------------------------
+         * A        |   Active, no injury
+         * D7       |   Injured 7-day
+         * D10      |   Injured 10-Day
+         * D15      |   Injured 15-Day
+         * D60      |   Injured 60-Day
+         * RM       |   Reassigned to Minors (meaning they can't be drafted)
+         * BRV      |   Bereavement List
+         * NYR      |   Not yet reported
+         * PL       |   Paternity List
+         * 
+*/
+
+export type InjuryStatus = 
+"A" | 
+"D7" | 
+"D10" |
+"D15" |
+"D60" |
+"RM" |
+"BRV" |
+"NYR" |
+"PL";
 
 // ==================== Draft-kit active roster slots ====================
 export const ROSTER_SLOTS = [

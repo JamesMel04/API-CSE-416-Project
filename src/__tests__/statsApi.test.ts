@@ -16,6 +16,12 @@ vi.mock('axios', () => ({
 import { getTeams, getRoster, averageStats, getAllPlayerStats, mapStats, getPlayerAge, getAllPlayers } from '../services/mlb.service';
 import { PitcherStats } from '@/types';
 
+vi.mock('../services/db.service', () => ({
+    positionEligibility: vi.fn()
+        .mockResolvedValueOnce(['RF'])  // Mookie Betts
+        .mockResolvedValueOnce(['P']),  // Clayton Kershaw
+}));
+
 describe('getTeams', () => {
     beforeEach(() => {
         mockGet.mockClear();
@@ -136,7 +142,8 @@ describe("getAllPlayers", () => {
         expect(hitter?.name).toBe('Mookie Betts');
         expect(hitter?.id).toBe(1);
         expect(hitter?.team).toBe('LAD');
-        expect(hitter?.position).toBe('RF');
+        expect(hitter?.mlbPositions).toContain('RF');
+        expect(hitter?.fantasyPositions).toEqual([]);
         expect(hitter?.stats.projection.hitting).toBeDefined();
         expect(hitter?.stats.projection.hitting.hr).toBe(20);
         expect(hitter?.stats.lastYear.hitting.avg).toBeCloseTo(0.3);
