@@ -23,7 +23,8 @@ const MLB_TO_FANTASY: Record<PlayerPosition, RosterSlot[]> = {
 export function mlbToFantasyPositions(mlbPositions: PlayerPosition[]): RosterSlot[] {
     const slots = new Set<RosterSlot>();
     for (const pos of mlbPositions) {
-        for (const slot of MLB_TO_FANTASY[pos]) slots.add(slot);
+        const mapped = MLB_TO_FANTASY[pos];
+        if (mapped) for (const slot of mapped) slots.add(slot);
     }
     return [...slots];
 }
@@ -36,12 +37,18 @@ const api = axios.create({
 })
 
 /**
- * Returns all players in the format described in types/index.ts
+ * Returns all players in the format described in types/index.ts.
+ * Processes MLB 40-man rosters first, then AAA and AA active rosters.
+ * Players already processed (e.g. optioned 40-man players) are skipped on the second pass.
  */
 export async function getAllPlayers(): Promise<PlayerPools> {
-    const teams = await getTeams();
+    const mlbTeams = await getTeams();
+    const aaaTeams = await getMinorLeagueTeams(11);
+    const aaTeams = await getMinorLeagueTeams(12);
+
     const hitters: HitterPlayer[] = [];
     const pitchers: PitcherPlayer[] = [];
+    const processedIds = new Set<number>();
 
     // Type used for casting, generated from AI.
     // Casting is needed since getAllPlayerStats can return either T = PitcherSeasonStats | HitterSeasonStats
@@ -52,29 +59,43 @@ export async function getAllPlayers(): Promise<PlayerPools> {
         threeYearAvg: T;
     }
 
-    for (const t of teams) {
-        const roster = await getRoster(t.id, t.abbreviation);
-        for (const p of roster) {
-            // Grab age 
-            const age = await getPlayerAge(p.id);
-            // Grab eligible positions
-            const eligiblePositions = await positionEligibility(p.id);
-            // Special case for Ohtani
-            const fantasyPositions = mlbToFantasyPositions(eligiblePositions);
-            if (p.position === "TWP") {
-                const hitterStats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
-                const pitcherStats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
-                hitters.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions, age, suggestedValue: 0, stats: hitterStats });
-                pitchers.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions, age, suggestedValue: 0, stats: pitcherStats });
-            } else if (p.position === "P") {
-                const stats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
-                pitchers.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions, age, suggestedValue: 0, stats });
-            } else {
-                const stats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
-                hitters.push({ ...p, mlbPositions: eligiblePositions, fantasyPositions, age, suggestedValue: 0, stats });
+    const processTeamRosters = async (teams: { id: number, abbreviation: string }[], active: boolean) => {
+        for (const t of teams) {
+            const roster = await getRoster(t.id, t.abbreviation, active);
+            for (const p of roster) {
+                if (processedIds.has(p.id)) continue;
+                processedIds.add(p.id);
+
+                const age = await getPlayerAge(p.id);
+                const isPitcher = p.position === "P" || p.position === "TWP";
+                const isMinorLeaguer = await computeIsMinorLeaguer(p.id, isPitcher);
+
+                let mlbPositions: PlayerPosition[] = [];
+                let fantasyPositions: RosterSlot[] = [];
+                if (!isMinorLeaguer) {
+                    mlbPositions = await positionEligibility(p.id);
+                    fantasyPositions = mlbToFantasyPositions(mlbPositions);
+                }
+
+                if (p.position === "TWP") {
+                    const hitterStats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
+                    const pitcherStats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
+                    hitters.push({ ...p, mlbPositions, fantasyPositions, age, suggestedValue: 0, isMinorLeaguer, stats: hitterStats });
+                    pitchers.push({ ...p, mlbPositions, fantasyPositions, age, suggestedValue: 0, isMinorLeaguer, stats: pitcherStats });
+                } else if (p.position === "P") {
+                    const stats = await getAllPlayerStats(p.id, true) as StatsGroup<PitcherSeasonStats>;
+                    pitchers.push({ ...p, mlbPositions, fantasyPositions, age, suggestedValue: 0, isMinorLeaguer, stats });
+                } else {
+                    const stats = await getAllPlayerStats(p.id, false) as StatsGroup<HitterSeasonStats>;
+                    hitters.push({ ...p, mlbPositions, fantasyPositions, age, suggestedValue: 0, isMinorLeaguer, stats });
+                }
             }
         }
-    }
+    };
+
+    await processTeamRosters(mlbTeams, false);
+    await processTeamRosters(aaaTeams, true);
+    await processTeamRosters(aaTeams, true);
 
     return { hitters, pitchers };
 }
@@ -90,16 +111,49 @@ export async function getAllPlayers(): Promise<PlayerPools> {
  * sportID = 1 just specifies to grab teams in the MLB
  */
 export async function getTeams() {
-    const res : any = await api.get('/teams', 
+    const res : any = await api.get('/teams',
         {params: { sportId: '1' }}
     );
     const teams = res.data.teams;
+    console.log("gotten teams");
     return teams.map((team : any) => (
         {
             abbreviation : team.abbreviation,
             id: team.id,
         }
      ))
+}
+
+/**
+ * Grabs list of minor league teams at the given sport level.
+ * sportId 11 = Triple-A, sportId 12 = Double-A
+ */
+export async function getMinorLeagueTeams(sportId: 11 | 12) {
+    const res: any = await api.get('/teams', { params: { sportId: String(sportId) } });
+    console.log(`gotten ${sportId} minor league team`);
+    return res.data?.teams.map((team: any) => ({
+        abbreviation: team.abbreviation,
+        id: team.id,
+    }));
+}
+
+/**
+ * Returns true if the player has not yet exceeded rookie eligibility thresholds:
+ * hitters < 130 career MLB at-bats, pitchers < 50 career MLB innings pitched.
+ * Uses yearByYear stats filtered to sport.id === 1 (MLB only) to avoid counting minor league stats.
+ */
+export async function computeIsMinorLeaguer(playerId: number, isPitcher: boolean): Promise<boolean> {
+    const group = isPitcher ? "pitching" : "hitting";
+    const res: any = await api.get(`/people/${playerId}/stats`, { params: { stats: "yearByYear", group } });
+    const splits: any[] = res.data.stats?.[0]?.splits || [];
+    const mlbSplits = splits.filter((s: any) => s.sport?.id === 1);
+    if (isPitcher) {
+        const careerIP = mlbSplits.reduce((sum: number, s: any) => sum + (parseFloat(s.stat?.inningsPitched) || 0), 0);
+        return careerIP < 50;
+    } else {
+        const careerAB = mlbSplits.reduce((sum: number, s: any) => sum + (s.stat?.atBats || 0), 0);
+        return careerAB < 130;
+    }
 }
 
 /**
@@ -128,7 +182,7 @@ export async function getRoster(teamId: any, teamAbb : any, active : boolean = f
             team: teamAbb,
             teamId: teamId,
             position: player.position.abbreviation,
-            injuryStatus: player.status.code as InjuryStatus
+            injuryStatus: (player.status?.code ?? "A") as InjuryStatus
         }
     ));
 }
@@ -207,7 +261,20 @@ export async function getAllPlayerStats(playerId : number, isPitcher : boolean) 
 export async function getPlayerYBYStats(playerId : number, group: "hitting" | "pitching") : Promise<[{season: string, stat: PitcherStats | HitterStats}] | []> {
     const res : any = await api.get(`/people/${playerId}/stats`, 
         {params: { stats: "yearByYear", group: group }});
-     return (res.data.stats?.[0]?.splits || []).map((s: any) => ({ season: s.season, stat: mapStats(s.stat, group) }));
+    const splits: any[] = res.data.stats?.[0]?.splits || [];
+
+    // For traded players the API returns per-team rows plus an aggregate row for that season.
+    // Keep only the row with the highest numTeams per season so we always get the aggregate
+    // (or the single row when the player stayed on one team all year).
+    const bySeason = new Map<string, any>();
+    for (const s of splits) {
+        const prev = bySeason.get(s.season);
+        if (!prev || (s.numTeams ?? 1) > (prev.numTeams ?? 1)) {
+            bySeason.set(s.season, s);
+        }
+    }
+
+    return [...bySeason.values()].map((s: any) => ({ season: s.season, stat: mapStats(s.stat, group) })) as any;
 }
 
 /**

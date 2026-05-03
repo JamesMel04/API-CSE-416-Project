@@ -85,9 +85,11 @@ export function populateHitters(hitters : HitterPlayer[], rows : any) {
             team: rows[i].team,
             teamId: rows[i].team_id,
             age: rows[i].age,
+            position: rows[i].position,
             mlbPositions: rows[i].mlb_positions,
             fantasyPositions: rows[i].fantasy_positions,
             injuryStatus: rows[i].injury_status,
+            isMinorLeaguer: rows[i].is_minor_leaguer,
             suggestedValue: rows[i].suggested_value,
             stats: {
                 projection: {
@@ -119,9 +121,11 @@ export function populatePitchers(pitchers : PitcherPlayer[], rows : any) {
             team: rows[i].team,
             teamId: rows[i].team_id,
             age: rows[i].age,
+            position: rows[i].position,
             mlbPositions: rows[i].mlb_positions,
             fantasyPositions: rows[i].fantasy_positions,
             injuryStatus: rows[i].injury_status,
+            isMinorLeaguer: rows[i].is_minor_leaguer,
             suggestedValue: rows[i].suggested_value,
             stats: {
                 projection: {
@@ -209,11 +213,11 @@ export async function refreshPlayers() {
 export async function insertPlayer(player: HitterPlayer | PitcherPlayer) {
     console.log(`Inserting player: ${player.name}`)
     await pool.query(
-        `INSERT INTO players (mlb_id, name, team, team_id, mlb_positions, fantasy_positions, age, injury_status, suggested_value)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        `INSERT INTO players (mlb_id, name, team, team_id, mlb_positions, fantasy_positions, age, injury_status, suggested_value, is_minor_leaguer, position)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
          ON CONFLICT (mlb_id) DO UPDATE SET
-         name=$2, team=$3, team_id=$4, mlb_positions=$5, fantasy_positions=$6, age=$7, injury_status=$8, suggested_value=$9`,
-        [player.id, player.name, player.team, player.teamId, player.mlbPositions, player.fantasyPositions, player.age, player.injuryStatus, player.suggestedValue]
+         name=$2, team=$3, team_id=$4, mlb_positions=$5, fantasy_positions=$6, age=$7, injury_status=$8, suggested_value=$9, is_minor_leaguer=$10, position=$11`,
+        [player.id, player.name, player.team, player.teamId, player.mlbPositions, player.fantasyPositions, player.age, player.injuryStatus, player.suggestedValue, player.isMinorLeaguer, player.position]
     );
 }
 

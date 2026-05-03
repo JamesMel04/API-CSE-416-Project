@@ -118,10 +118,12 @@ export interface Player {
     team: string;
     teamId: number;
     age: number;
-    mlbPositions: PlayerPosition[];
-    fantasyPositions: RosterSlot[];
+    position: PlayerPosition; // Specific designated position. Mostly used to check for "TWP".
+    mlbPositions: PlayerPosition[]; // List of eligilbe positions
+    fantasyPositions: RosterSlot[]; // List of eligible fantasy positions
     suggestedValue: number;
     injuryStatus: InjuryStatus,
+    isMinorLeaguer: boolean;
     stats: {
         projection: SeasonStats;
         lastYear: SeasonStats;
