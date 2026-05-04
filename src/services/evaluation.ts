@@ -128,7 +128,7 @@ export async function evaluatePlayers(request: ValuationRequest): Promise<Player
 
     for (const player of eligible) {
         const score = adjustedScores[player.id] ?? 0;
-        const slots = getEligibleRosterSlots(player);
+        const slots = player.fantasyPositions;
         const bestMargin = Math.max(0, ...slots.map(s => score - replacementScores[s]));
         marginalScores[player.id] = bestMargin;
     }
@@ -152,23 +152,24 @@ function getAgeFactor(age: number | undefined): number {
     return Math.max(0.90, Math.min(1.0, raw));
 }
 
-function getEligibleRosterSlots(player: Player): RosterSlot[] {
-    const slots = new Set<RosterSlot>();
-    for (const pos of player.mlbPositions) {
-        if (["C"].includes(pos)) { slots.add("C"); slots.add("U"); }
-        else if (["1B"].includes(pos)) { slots.add("1B"); slots.add("CI"); slots.add("U"); }
-        else if (["2B"].includes(pos)) { slots.add("2B"); slots.add("MI"); slots.add("U"); }
-        else if (["3B"].includes(pos)) { slots.add("3B"); slots.add("CI"); slots.add("U"); }
-        else if (["SS"].includes(pos)) { slots.add("SS"); slots.add("MI"); slots.add("U"); }
-        else if (["CI"].includes(pos)) { slots.add("CI"); slots.add("U"); }
-        else if (["MI"].includes(pos)) { slots.add("MI"); slots.add("U"); }
-        else if (["IF"].includes(pos)) { ["1B", "2B", "3B", "SS", "CI", "MI", "U"].forEach(s => slots.add(s as RosterSlot)); }
-        else if (["LF", "CF", "RF", "OF"].includes(pos)) { slots.add("OF"); slots.add("U"); }
-        else if (["DH", "U"].includes(pos)) { slots.add("U"); }
-        else if (["P", "SP", "RP"].includes(pos)) { slots.add("P"); }
-    }
-    return [...slots];
-}
+/** Removed to utilize player.fantasyPositions directly */
+// function getEligibleRosterSlots(player: Player): RosterSlot[] {
+//     const slots = new Set<RosterSlot>();
+//     for (const pos of player.mlbPositions) {
+//         if (["C"].includes(pos)) { slots.add("C"); slots.add("U"); }
+//         else if (["1B"].includes(pos)) { slots.add("1B"); slots.add("CI"); slots.add("U"); }
+//         else if (["2B"].includes(pos)) { slots.add("2B"); slots.add("MI"); slots.add("U"); }
+//         else if (["3B"].includes(pos)) { slots.add("3B"); slots.add("CI"); slots.add("U"); }
+//         else if (["SS"].includes(pos)) { slots.add("SS"); slots.add("MI"); slots.add("U"); }
+//         else if (["CI"].includes(pos)) { slots.add("CI"); slots.add("U"); }
+//         else if (["MI"].includes(pos)) { slots.add("MI"); slots.add("U"); }
+//         else if (["IF"].includes(pos)) { ["1B", "2B", "3B", "SS", "CI", "MI", "U"].forEach(s => slots.add(s as RosterSlot)); }
+//         else if (["LF", "CF", "RF", "OF"].includes(pos)) { slots.add("OF"); slots.add("U"); }
+//         else if (["DH", "U"].includes(pos)) { slots.add("U"); }
+//         else if (["P", "SP", "RP"].includes(pos)) { slots.add("P"); }
+//     }
+//     return [...slots];
+// }
 
 function countFilledRosterSlots(leagueState: LeagueState): RosterSlotCounts {
     const counts: RosterSlotCounts = { C: 0, "1B": 0, "2B": 0, "3B": 0, SS: 0, CI: 0, MI: 0, OF: 0, U: 0, P: 0 };
@@ -197,7 +198,7 @@ function computeReplacementScores(
         
         // Ensure we filter correctly
         const ranked = eligible
-            .filter(p => getEligibleRosterSlots(p).includes(slot))
+            .filter(p => p.fantasyPositions.includes(slot))
             .sort((a, b) => (adjustedScores[b.id] ?? 0) - (adjustedScores[a.id] ?? 0));
 
         // 1. Handle empty array immediately
