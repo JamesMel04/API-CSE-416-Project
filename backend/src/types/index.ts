@@ -117,22 +117,13 @@ export interface Player {
     name: string;
     team: string;
     teamId: number;
-    position: string;
     age: number;
-    positions: PlayerPosition[];
+    position: PlayerPosition; // Specific designated position. Mostly used to check for "TWP".
+    mlbPositions: PlayerPosition[]; // List of eligilbe positions
+    fantasyPositions: RosterSlot[]; // List of eligible fantasy positions
     suggestedValue: number;
-     /**
-         * 
-         * Status   |   Meaning
-         * -------------------------
-         * A        |   Active, no injury
-         * D7       |   Injured 7-day
-         * D10      |   Injured 10-Day
-         * D15      |   Injured 15-Day
-         * D60      |   Injured 60-Day
-         * 
-    */
-    injuryStatus: string,
+    injuryStatus: InjuryStatus,
+    isMinorLeaguer: boolean;
     stats: {
         projection: SeasonStats;
         lastYear: SeasonStats;
@@ -164,26 +155,46 @@ export interface LeagueSettings {
 
 // ==================== Player positions from source data ====================
 export const PLAYER_POSITIONS = [
-    "C",    // Catcher
-    "1B",   // First base
-    "2B",   // Second base
-    "3B",   // Third base
-    "SS",   // Shortstop
-    "CI",   // Corner infield
-    "MI",   // Middle infield
-    "IF",   // Infield
-    "LF",   // Left field
-    "CF",   // Center field
-    "RF",   // Right field
-    "OF",   // Outfield
-    "DH",   // Designated hitter
-    "U",    // Utility
-    "P",    // Pitcher
-    "SP",   // Starting pitcher
-    "RP",   // Relief pitcher
-    "TWP", // Two-way player
+    "1B",
+    "2B",
+    "3B",
+    "C",
+    "CF",
+    "DH",
+    "LF",
+    "P",
+    "RF",
+    "SS",
+    "TWP",
 ] as const;
 export type PlayerPosition = typeof PLAYER_POSITIONS[number];
+
+/** Injury Status
+         * 
+         * Status   |   Meaning
+         * -------------------------
+         * A        |   Active, no injury
+         * D7       |   Injured 7-day
+         * D10      |   Injured 10-Day
+         * D15      |   Injured 15-Day
+         * D60      |   Injured 60-Day
+         * RM       |   Reassigned to Minors (meaning they can't be drafted)
+         * BRV      |   Bereavement List
+         * NYR      |   Not yet reported
+         * PL       |   Paternity List
+         * 
+*/
+
+export type InjuryStatus = 
+"A" | 
+"D7" | 
+"D10" |
+"D15" |
+"D60" |
+"RM" |
+"BRV" |
+"NYR" |
+"PL";
 
 // ==================== Draft-kit active roster slots ====================
 export const ROSTER_SLOTS = [

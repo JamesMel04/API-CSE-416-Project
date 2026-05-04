@@ -52,6 +52,7 @@ async function testDB() {
 describe("insertHitter", () => {
     afterAll(async () => {
         await playersPool.query('DELETE FROM hitter_stats WHERE mlb_id = $1', [660271]);
+        await playersPool.query('DELETE FROM pitcher_stats WHERE mlb_id = $1', [660271]);
         await playersPool.query('DELETE FROM players WHERE mlb_id = $1', [660271]);
         await playersPool.end();
     });

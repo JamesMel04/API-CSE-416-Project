@@ -3,7 +3,7 @@
  */
 import { vi, describe, test, expect, beforeEach } from 'vitest';
 import { PitcherStats } from '../types';
-import { mockTeamResponse, mockRosterActiveResponse, mockPitcherStats, mockHitterStats } from './fixtures/mlbApiResponses';
+import { mockTeamResponse, mockRosterActiveResponse, mockHitterProjectedResponse, mockHitterYBYResponse, mockPitcherStats, mockHitterStats } from './fixtures/mlbApiResponses';
 import { getTeams, getRoster, averageStats, getAllPlayerStats, mapStats, getPlayerAge, getAllPlayers } from '../services/mlb.service';
 
 
@@ -13,6 +13,14 @@ vi.mock('axios', () => ({
     default: {
         create: vi.fn(() => ({ get: mockGet })),
     },
+}));
+
+
+
+vi.mock('../services/db.service', () => ({
+    positionEligibility: vi.fn()
+        .mockResolvedValueOnce(['RF'])  // Mookie Betts
+        .mockResolvedValueOnce(['P']),  // Clayton Kershaw
 }));
 
 describe('getTeams', () => {
@@ -58,7 +66,13 @@ describe("getAllPlayers", () => {
             },
         });
 
-        // 2. getRoster - one hitter, one pitcher
+        // 2. getMinorLeagueTeams(11) - AAA teams (empty to skip AAA processing)
+        mockGet.mockResolvedValueOnce({ data: { teams: [] } });
+
+        // 3. getMinorLeagueTeams(12) - AA teams (empty to skip AA processing)
+        mockGet.mockResolvedValueOnce({ data: { teams: [] } });
+
+        // 4. getRoster - one hitter, one pitcher
         mockGet.mockResolvedValueOnce({
             data: {
                 roster: [
@@ -86,14 +100,19 @@ describe("getAllPlayers", () => {
             gamesPlayed: 30, era: '3.00', gamesStarted: 28, wins: 12,
             losses: 5, shutouts: 1, saves: 0, inningsPitched: '180.0',
             hits: 150, earnedRuns: 60, runsScoredPer9: 3.5, homeRunsPer9: 1.0,
-            holds: 0, hitsBatsmen: 5, baseOnBalls: 40, strikeOuts: 200,
+            holds: 0, hitBatsmen: 5, baseOnBalls: 40, strikeOuts: 200,
             whip: '1.05',
         };
 
-        // 3. getPlayerAge - Mookie
+        // 5. getPlayerAge - Mookie
         mockGet.mockResolvedValueOnce({ data: { people: [{ currentAge: 31 }] } });
 
-        // 4. Mookie YBY stats (hitting)
+        // 6. computeIsMinorLeaguer - Mookie (500 ABs → not a minor leaguer)
+        mockGet.mockResolvedValueOnce({
+            data: { stats: [{ splits: [{ sport: { id: 1 }, stat: { atBats: 500 } }] }] },
+        });
+
+        // 7. Mookie YBY stats (hitting)
         mockGet.mockResolvedValueOnce({
             data: { stats: [{ splits: [
                 { season: '2023', stat: fullHittingStat },
@@ -102,15 +121,20 @@ describe("getAllPlayers", () => {
             ] }] },
         });
 
-        // 5. Mookie projected stats (hitting)
+        // 8. Mookie projected stats (hitting)
         mockGet.mockResolvedValueOnce({
             data: { stats: [{ splits: [{ stat: fullHittingStat }] }] },
         });
 
-        // 6. getPlayerAge - Kershaw
+        // 9. getPlayerAge - Kershaw
         mockGet.mockResolvedValueOnce({ data: { people: [{ currentAge: 36 }] } });
 
-        // 7. Kershaw YBY stats (pitching)
+        // 10. computeIsMinorLeaguer - Kershaw (180 IP → not a minor leaguer)
+        mockGet.mockResolvedValueOnce({
+            data: { stats: [{ splits: [{ sport: { id: 1 }, stat: { inningsPitched: '180.0' } }] }] },
+        });
+
+        // 11. Kershaw YBY stats (pitching)
         mockGet.mockResolvedValueOnce({
             data: { stats: [{ splits: [
                 { season: '2023', stat: fullPitchingStat },
@@ -119,7 +143,7 @@ describe("getAllPlayers", () => {
             ] }] },
         });
 
-        // 8. Kershaw projected stats (pitching)
+        // 12. Kershaw projected stats (pitching)
         mockGet.mockResolvedValueOnce({
             data: { stats: [{ splits: [{ stat: fullPitchingStat }] }] },
         });
@@ -135,7 +159,8 @@ describe("getAllPlayers", () => {
         expect(hitter?.name).toBe('Mookie Betts');
         expect(hitter?.id).toBe(1);
         expect(hitter?.team).toBe('LAD');
-        expect(hitter?.position).toBe('RF');
+        expect(hitter?.mlbPositions).toContain('RF');
+        expect(hitter?.fantasyPositions).toEqual(['OF', 'U']);
         expect(hitter?.stats.projection.hitting).toBeDefined();
         expect(hitter?.stats.projection.hitting.hr).toBe(20);
         expect(hitter?.stats.lastYear.hitting.avg).toBeCloseTo(0.3);
@@ -234,6 +259,19 @@ describe('getAllPlayerStats', () => {
                 hitting: expect.objectContaining({ hr: 25, avg: expect.closeTo(0.29) }),
             },
         });
+    });
+
+    test('uses aggregate stats for a player traded mid-season', async () => {
+        // 2025 has two per-team rows (Boston hr:15, SF hr:20) plus an aggregate (hr:35, numTeams:2)
+        mockGet.mockResolvedValueOnce({ data: mockHitterYBYResponse });
+        mockGet.mockResolvedValueOnce({ data: mockHitterProjectedResponse });
+
+        const result = await getAllPlayerStats(646240, false);
+
+        // lastYear must come from the 2025 aggregate, not the first Boston row
+        expect((result.lastYear as any).hitting.hr).toBe(35);
+        // threeYearAvg: 2023 (hr:33) + 2024 (hr:28) + 2025 aggregate (hr:35) → 32
+        expect((result.threeYearAvg as any).hitting.hr).toBeCloseTo((33 + 28 + 35) / 3);
     });
 
     test('property "pitching" is present when pitcher is grabbed', async () => {

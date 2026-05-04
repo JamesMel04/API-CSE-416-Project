@@ -1,9 +1,10 @@
 import { HitterPlayer, HitterStats, PitcherPlayer, PitcherStats, PlayerPools, PlayerPosition } from "../types";
 import { getAllPlayers } from "./mlb.service";
-import pool from "./db.pool" ;
+import pool from "./db.pool";
+import axios from "axios";
 
 // After how many hours to refresh data
-const REFRESH_TIME = 24;
+const REFRESH_TIME = 23;
 
 // Service functions to implement with database
 // const pool = new Pool({
@@ -21,11 +22,36 @@ const REFRESH_TIME = 24;
 // });
 
 /**
+ * Queries the MLB stats API for the "fielding" stats to find eligilble positions
+ * (those where they have >= 10 games played in the 2025 season).
+ */
+export async function positionEligibility(playerID: number): Promise<PlayerPosition[]> {
+    try {
+        const res: any = await axios.get(
+            `https://statsapi.mlb.com/api/v1/people/${playerID}/stats`,
+            { params: { stats: "season", group: "fielding", season: 2025 } }
+        );
+        const splits: any[] = res.data.stats?.[0]?.splits ?? [];
+        // A set has to be used cause there's an aggregate row and a row per team
+        const positions = new Set<PlayerPosition>();
+        for (const s of splits) {
+            if ((s.stat?.gamesPlayed ?? 0) >= 10)
+                positions.add(s.position.abbreviation as PlayerPosition);
+        }
+        return [...positions];
+    } catch {
+        return [];
+    }
+}
+
+/**
  * Returns cached players from the database, if they are new enough. Otherwise, it refreshes the DB
  */
 export async function getCachedPlayers() : Promise<PlayerPools> {
     if(await shouldUpdateCache()) {
+        console.log("refreshing players");
         await refreshPlayers();
+        console.log("players refreshed");
         await updateRefreshTimestamp();
     }
     // TODO: Grab players from DB to return, creating a JOIN between the players table and the stats table when IDs equal.
@@ -35,12 +61,14 @@ export async function getCachedPlayers() : Promise<PlayerPools> {
     // Step 1: Get a join of the hitters and pitchers with the hitter and pitcher stats respectively
     const hitterRows = await pool.query("SELECT p.*, h.* FROM players p JOIN hitter_stats h ON p.mlb_id = h.mlb_id ORDER BY p.mlb_id, h.stat_type ");
     const pitcherRows = await pool.query("SELECT p.*, ps.* FROM players p JOIN pitcher_stats ps ON p.mlb_id = ps.mlb_id ORDER BY p.mlb_id, ps.stat_type");
+    console.log("grabbed hitter and pitcher rows");
 
     // This will give rows where the player information repeats in 3 rows for each stat type. Then, from this join,
     // you can make the player objects to add to the hitters and pitchers
     populateHitters(hitters, hitterRows.rows);
+    console.log("hitters populated");
     populatePitchers(pitchers, pitcherRows.rows);
-
+    console.log("pitchers populated");
 
     return {hitters, pitchers};
 }
@@ -55,10 +83,12 @@ export function populateHitters(hitters : HitterPlayer[], rows : any) {
             name: rows[i].name,
             team: rows[i].team,
             teamId: rows[i].team_id,
-            positions: [rows[i].position as PlayerPosition],
-            position: rows[i].position,
             age: rows[i].age,
+            position: rows[i].position,
+            mlbPositions: rows[i].mlb_positions,
+            fantasyPositions: rows[i].fantasy_positions,
             injuryStatus: rows[i].injury_status,
+            isMinorLeaguer: rows[i].is_minor_leaguer,
             suggestedValue: rows[i].suggested_value,
             stats: {
                 projection: {
@@ -80,7 +110,7 @@ export function populateHitters(hitters : HitterPlayer[], rows : any) {
 }
 
 export function populatePitchers(pitchers : PitcherPlayer[], rows : any) {
-     for (let i = 0; i < rows.length; i+=3) {
+    for (let i = 0; i < rows.length; i+=3) {
         const lyI = i; // last year index
         const pI = i+1; // projected index
         const tyaI = i+2 // three-year average index
@@ -89,10 +119,12 @@ export function populatePitchers(pitchers : PitcherPlayer[], rows : any) {
             name: rows[i].name,
             team: rows[i].team,
             teamId: rows[i].team_id,
-            positions: [rows[i].position as PlayerPosition],
-            position: rows[i].position,
             age: rows[i].age,
+            position: rows[i].position,
+            mlbPositions: rows[i].mlb_positions,
+            fantasyPositions: rows[i].fantasy_positions,
             injuryStatus: rows[i].injury_status,
+            isMinorLeaguer: rows[i].is_minor_leaguer,
             suggestedValue: rows[i].suggested_value,
             stats: {
                 projection: {
@@ -166,7 +198,7 @@ export function derivePitcherStats(row : any) : PitcherStats {
  */
 export async function refreshPlayers() {
     const { hitters, pitchers } = await getAllPlayers();
-
+    console.log("gotten all players for refreshing");
     // Insert hitters
     for (const h of hitters) await insertHitter(h);
 
@@ -178,12 +210,13 @@ export async function refreshPlayers() {
  * Inserts given player into DB
  */
 export async function insertPlayer(player: HitterPlayer | PitcherPlayer) {
+    console.log(`Inserting player: ${player.name}`)
     await pool.query(
-        `INSERT INTO players (mlb_id, name, team, team_id, position, age, injury_status, suggested_value)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        `INSERT INTO players (mlb_id, name, team, team_id, mlb_positions, fantasy_positions, age, injury_status, suggested_value, is_minor_leaguer, position)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
          ON CONFLICT (mlb_id) DO UPDATE SET
-         name=$2, team=$3, team_id=$4, position=$5, age=$6, injury_status=$7, suggested_value=$8`,
-        [player.id, player.name, player.team, player.teamId, player.position, player.age, player.injuryStatus, player.suggestedValue]
+         name=$2, team=$3, team_id=$4, mlb_positions=$5, fantasy_positions=$6, age=$7, injury_status=$8, suggested_value=$9, is_minor_leaguer=$10, position=$11`,
+        [player.id, player.name, player.team, player.teamId, player.mlbPositions, player.fantasyPositions, player.age, player.injuryStatus, player.suggestedValue, player.isMinorLeaguer, player.position]
     );
 }
 
