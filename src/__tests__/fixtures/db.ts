@@ -12,6 +12,7 @@ export const mockHitter: HitterPlayer = {
     mlbPositions: [],
     fantasyPositions: [],
     injuryStatus: 'A',
+    isMinorLeaguer: false,
     suggestedValue: 0,
     stats: {
         projection: { seasons: [2026], hitting: { ab: 500, r: 90, h: 150, "1b": 80, "2b": 30, "3b": 5, hr: 35, rbi: 95, bb: 70, k: 120, sb: 20, cs: 5, avg: .300, obp: .400, slg: .600, fpts: 0 } },
