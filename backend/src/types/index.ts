@@ -182,7 +182,7 @@ export type PlayerPosition = typeof PLAYER_POSITIONS[number];
          * BRV      |   Bereavement List
          * NYR      |   Not yet reported
          * PL       |   Paternity List
-         * 
+         * SU       |   Suspended # of days
 */
 
 export type InjuryStatus = 
@@ -194,7 +194,8 @@ export type InjuryStatus =
 "RM" |
 "BRV" |
 "NYR" |
-"PL";
+"PL" |
+"SU";
 
 // ==================== Draft-kit active roster slots ====================
 export const ROSTER_SLOTS = [
