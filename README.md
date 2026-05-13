@@ -561,3 +561,12 @@ Player projected stats:
 | 500  | Internal server error                             |
 
 
+## Notifications
+`api/simulateNotification` takes in a json of the form:
+{
+  playerName: string,
+  transactionType: string,
+  description: string,
+}
+And POSTs it to our backend at `backend/notifications`. 
+The backend then 

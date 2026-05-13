@@ -4,6 +4,7 @@ import cors from "cors"
 import dotenv from 'dotenv';
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import axios from 'axios';
 import express, { Request, Response, NextFunction } from 'express';
 import { ValuationRequest } from './types';
 import dbPool from './services/db.pool';
@@ -277,8 +278,25 @@ app.get("/api-keys", requireAuth, async (req: AuthenticatedRequest, res) => {
 });
 
 
+const draftKitApi = axios.create({baseURL: process.env.DRAFTKIT_BACKEND_URL ?? 'http://localhost:4000' })
 
-//========================================================
+app.post('/mockNotification', async (req, res) => {
+  const { playerName, transactionType, description } = req.body;
+
+  if (!playerName || !transactionType) {
+    return res.status(400).json({ error: 'playerName and transactionType are required' });
+  }
+
+  try {
+    await draftKitApi.post("/notifications", { playerName, transactionType, description });
+    
+    return res.status(201).json({ message: 'Notification simulated' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Failed to simulate notification' });
+  }
+});
+
 
 //================ ONLY FOR TESTING ==========================
 // app.get('/players/valuations/test', (req, res) => {
