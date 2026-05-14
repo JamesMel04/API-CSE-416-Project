@@ -562,7 +562,7 @@ Player projected stats:
 
 
 ## Notifications
-`api/simulateNotification` takes in a json of the form:
+`api/mockNotification` takes in a json of the form:
 {
   playerName: string,
   transactionType: string,
