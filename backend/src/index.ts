@@ -280,8 +280,8 @@ app.get("/api-keys", requireAuth, async (req: AuthenticatedRequest, res) => {
 
 const draftKitApi = axios.create({baseURL: process.env.DRAFTKIT_BACKEND_URL ?? 'http://localhost:4000' })
 
-app.post('/mockNotification', async (req, res) => {
-  const { playerName, transactionType, description } = req.body ?? {};
+app.get('/mockNotification', async (req, res) => {
+  const { playerName, transactionType, description } = req.query;
 
   if (!playerName || !transactionType) {
     return res.status(400).json({ error: 'playerName and transactionType are required' });
