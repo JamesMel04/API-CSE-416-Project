@@ -131,11 +131,10 @@ export async function evaluatePlayers(request: ValuationRequest): Promise<Player
     });
 
     // [Step 10-13: Replacement Logic and Auction Price]
-    const effectiveTeamCount = Math.max(10, leagueSettings.teamCount);
     const replacementScores = computeReplacementScores(
         eligible,
         adjustedScores,
-        { ...leagueSettings, teamCount: effectiveTeamCount },
+        leagueSettings,
         leagueState
     );
     const marginalScores: Record<PlayerID, number> = {};
