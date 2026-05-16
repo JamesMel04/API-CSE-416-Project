@@ -237,6 +237,7 @@ export interface ValuationRequest {
 // ==================== Valuation Response (returned by API) ====================
 export interface PlayerValuation {
     id: PlayerID;
+    rankValue: number;
     normalizedValue: number;
     auctionPrice: number;
 }

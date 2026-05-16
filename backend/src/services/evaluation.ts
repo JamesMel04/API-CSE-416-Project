@@ -148,6 +148,10 @@ export async function evaluatePlayers(request: ValuationRequest): Promise<Player
     const hitterPoolDecay = getRemainingPoolDecay(unfilteredMaxHitterMarginal, currentMaxHitterMarginal);
     const pitcherPoolDecay = getRemainingPoolDecay(unfilteredMaxPitcherMarginal, currentMaxPitcherMarginal);
     const pitcherIds = new Set(pitchers.map((player) => player.id));
+    const rankValues = {
+        ...computeRankValues(hitters, adjustedScores),
+        ...computeRankValues(pitchers, adjustedScores)
+    };
     
     // Safety check for division by zero
     const dollarsPerSpot = rosterSize > 0 ? (leagueSettings.budget / rosterSize) : 0;
@@ -165,10 +169,28 @@ export async function evaluatePlayers(request: ValuationRequest): Promise<Player
         
         return { 
             id: player.id, 
+            rankValue: rankValues[player.id] ?? 0,
             normalizedValue: normalized, 
             auctionPrice: Math.round(price) 
         };
     });
+}
+
+function computeRankValues(players: Player[], adjustedScores: Record<PlayerID, number>): Record<PlayerID, number> {
+    if (!players.length) return {};
+
+    const scores = players.map((player) => adjustedScores[player.id] ?? 0);
+    const minScore = Math.min(...scores);
+    const maxScore = Math.max(...scores);
+    const scoreRange = maxScore - minScore;
+
+    return Object.fromEntries(
+        players.map((player) => {
+            const score = adjustedScores[player.id] ?? 0;
+            const rankValue = scoreRange > 0 ? (score - minScore) / scoreRange : 0;
+            return [player.id, rankValue];
+        })
+    );
 }
 
 function getRemainingPoolDecay(unfilteredMaxMarginal: number, currentMaxMarginal: number): number {
