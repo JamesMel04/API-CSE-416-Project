@@ -151,15 +151,17 @@ export async function evaluatePlayers(request: ValuationRequest): Promise<Player
         marginalScores[player.id] = bestMargin;
     }
 
-    const allMarginalValues = Object.values(marginalScores);
-    const maxMarginal = allMarginalValues.length > 0 ? Math.max(0, ...allMarginalValues) : 0;
+    const maxHitterMarginal = getMaxMarginal(eligibleHitters, marginalScores);
+    const maxPitcherMarginal = getMaxMarginal(eligiblePitchers, marginalScores);
+    const pitcherIds = new Set(eligiblePitchers.map((player) => player.id));
     
     // Safety check for division by zero
     const dollarsPerSpot = rosterSize > 0 ? (leagueSettings.budget / rosterSize) : 0;
 
     return eligible.map(player => {
         const mScore = marginalScores[player.id] ?? 0;
-        const normalized = maxMarginal > 0 ? mScore / maxMarginal : 0;
+        const maxMarginalForPool = pitcherIds.has(player.id) ? maxPitcherMarginal : maxHitterMarginal;
+        const normalized = maxMarginalForPool > 0 ? mScore / maxMarginalForPool : 0;
         
         // Math.pow ensures that elite players get exponentially more value
         const price = Math.max(1, Math.pow(dollarsPerSpot * normalized, 1.5));
@@ -170,6 +172,11 @@ export async function evaluatePlayers(request: ValuationRequest): Promise<Player
             auctionPrice: Math.round(price) 
         };
     });
+}
+
+function getMaxMarginal(players: Player[], marginalScores: Record<PlayerID, number>): number {
+    const values = players.map((player) => marginalScores[player.id] ?? 0);
+    return values.length > 0 ? Math.max(0, ...values) : 0;
 }
 
 function getAgeFactor(age: number | undefined): number {
