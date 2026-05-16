@@ -181,6 +181,14 @@ function getAgeFactor(age: number | undefined): number {
     return Math.max(0.90, Math.min(1.0, raw));
 }
 
+function normalizeRosterSlot(slot: string): RosterSlot | null {
+    if (slot === "UTIL") return "U";
+    if (slot.startsWith("OF")) return "OF";
+    if (slot.startsWith("P")) return "P";
+    if (ROSTER_SLOTS.includes(slot as RosterSlot)) return slot as RosterSlot;
+    return null;
+}
+
 /** Removed to utilize player.fantasyPositions directly */
 // function getEligibleRosterSlots(player: Player): RosterSlot[] {
 //     const slots = new Set<RosterSlot>();
@@ -203,9 +211,10 @@ function getAgeFactor(age: number | undefined): number {
 function countFilledRosterSlots(leagueState: LeagueState): RosterSlotCounts {
     const counts: RosterSlotCounts = { C: 0, "1B": 0, "2B": 0, "3B": 0, SS: 0, CI: 0, MI: 0, OF: 0, U: 0, P: 0 };
     Object.values(leagueState.teams).forEach(team => {
-        Object.keys(team.roster).forEach(slot => {
-            if (team.roster[slot as RosterSlot]) {
-                counts[slot as RosterSlot]++;
+        Object.entries(team.roster).forEach(([slot, playerId]) => {
+            const normalizedSlot = normalizeRosterSlot(slot);
+            if (normalizedSlot && playerId) {
+                counts[normalizedSlot]++;
             }
         });
     });
