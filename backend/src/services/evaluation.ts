@@ -236,6 +236,7 @@ function getAgeFactor(age: number | undefined): number {
 
 function normalizeRosterSlot(slot: string): RosterSlot | null {
     if (slot === "UTIL") return "U";
+    if (/^C\d+$/.test(slot)) return "C";
     if (slot.startsWith("OF")) return "OF";
     if (slot.startsWith("P")) return "P";
     if (ROSTER_SLOTS.includes(slot as RosterSlot)) return slot as RosterSlot;
