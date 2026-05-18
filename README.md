@@ -562,11 +562,10 @@ Player projected stats:
 
 
 ## Notifications
-`api/mockNotification` takes in a json of the form:
-{
+`api/mockNotification` takes in query parameters of the form:
+`
   playerName: string,
   transactionType: string,
   description: string,
-}
-And POSTs it to our backend at `backend/notifications`. 
-The backend then 
+`
+And POSTs it to our backend at `backend/notifications`.
